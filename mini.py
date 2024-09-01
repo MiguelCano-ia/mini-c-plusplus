@@ -116,6 +116,11 @@ def print_tokens():
             i = i++;
         }
         
+        int j = 100;
+        
+        int z = j + i;
+        printf("z = %d\n", z);
+        
         return 0;
     }
 '''
