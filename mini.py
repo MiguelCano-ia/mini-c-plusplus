@@ -11,16 +11,18 @@ class Lexer(sly.Lexer):
     tokens = {
         #Keywords
         VOID, BOOL, INT, FLOAT, IF, ELSE, WHILE,
-        RETURN, CONTINUE, SIZE, NEW, CLASS, IDENT,
+        RETURN, CONTINUE, SIZE, NEW, CLASS, PRINTF,
+        THIS, SUPER, PRIVATE, PUBLIC,
 
         #Operators
-        AND, OR, EQ, NE, GE, LE,
+        AND, OR, NOT,
+        EQ, NE, GE, GT, LE, LT,
 
         #Literals
-        INTLIT, FLOATLIT, BOOLIT, STRINGLIT,
+        INTLIT, FLOATLIT, BOOLIT, STRINGLIT, IDENT,
     }
 
-    #Simobols and simple literals
+    #Simbols and simple literals
     literals = '+-*/%=().,;{}[]<>!'
 
     #Ignore spaces and tabs
@@ -57,6 +59,11 @@ class Lexer(sly.Lexer):
     IDENT['size'] = SIZE
     IDENT['new'] = NEW
     IDENT['class'] = CLASS
+    IDENT['printf'] = PRINTF
+    IDENT['this'] = THIS
+    IDENT['super'] = SUPER
+    IDENT['private'] = PRIVATE
+    IDENT['public'] = PUBLIC
 
     @_(r'\d+')
     def INTLIT(self, t):
@@ -82,9 +89,12 @@ class Lexer(sly.Lexer):
     EQ = r'=='
     NE = r'!='
     GE = r'>='
+    GT = r'>'
     LE = r'<='
+    LT = r'<'
     AND = r'&&'
     OR = r'\|\|'
+    NOT = r'!'
 
     def error(self, t):
         print(f'Error: Illegal character {t.value[0]}')
@@ -100,6 +110,12 @@ def print_tokens():
         if (i == 12) {
             printf("Hola clase\n");
         }
+        
+        while (i < 20) {
+            printf("i = %d\n", i);
+            i = i++;
+        }
+        
         return 0;
     }
 '''
