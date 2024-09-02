@@ -23,7 +23,7 @@ class Lexer(sly.Lexer):
     }
 
     #Simbols and simple literals
-    literals = '+-*/%=().,;{}[]<>!'
+    literals = '+-*/%=().,:;{}[]<>!'
 
     #Ignore spaces and tabs
     ignore = ' \t'
@@ -103,27 +103,57 @@ class Lexer(sly.Lexer):
 def print_tokens():
     l = Lexer()
     d = '''
-    void main(void) {
-        // Esto es un comentario
-        int i = 12;
-        float pi = 3.1415;
-        if (i == 12) {
-            printf("Hola clase\n");
+        class Persona {
+            private:
+                int edad;
+                float altura;
+                string nombre;
+            
+            public:
+                Persona(int e, float a, string n) {
+                    this.edad = e;
+                    this.altura = a;
+                    this.nombre = n;
+                }
+            
+                void mostrarInformacion() {
+                    printf("Nombre: %s\n", this.nombre);
+                    printf("Edad: %d\n", this.edad);
+                    printf("Altura: %.2f\n", this.altura);
+                }
+            
+                void actualizarEdad(int nuevaEdad) {
+                    this.edad = nuevaEdad;
+                }
+    
+                void incrementarEdadHasta(int limite) {
+                    while (this.edad < limite) {
+                        if (this.edad % 2 == 0) {
+                            this.edad++;
+                            continue; 
+                        }
+            
+                        if (this.edad >= 100) {
+                            break;
+                        }
+            
+                        this.edad++;
+                    }
+                }
+            };
+    
+        void main() {
+            Persona p = new Persona(25, 1.75, "Juan");
+            p.mostrarInformacion();
+            p.actualizarEdad(26);
+            p.mostrarInformacion();
+            p.actualizarEdad(99);
+            p.incrementarEdadHasta(105);
+            p.mostrarInformacion();
+        
+            return 0;
         }
-        
-        while (i < 20) {
-            printf("i = %d\n", i);
-            i = i++;
-        }
-        
-        int j = 100;
-        
-        int z = j + i;
-        printf("z = %d\n", z);
-        
-        return 0;
-    }
-'''
+    '''
 
     for tok in l.tokenize(d):
         print(tok)
