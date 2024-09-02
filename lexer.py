@@ -7,16 +7,16 @@ from rich import print
 
 class Lexer(sly.Lexer):
     #Tokens List
-
     tokens = {
         #Keywords
         VOID, BOOL, INT, FLOAT, IF, ELSE, WHILE,
         RETURN, CONTINUE, SIZE, NEW, CLASS, PRINTF,
-        THIS, SUPER, PRIVATE, PUBLIC,
+        THIS, SUPER, PRIVATE, PUBLIC, BREAK,
 
         #Operators
         AND, OR, NOT,
         EQ, NE, GE, GT, LE, LT,
+        INCREMENT, DECREMENT,
 
         #Literals
         INTLIT, FLOATLIT, BOOLIT, STRINGLIT, IDENT,
@@ -39,40 +39,18 @@ class Lexer(sly.Lexer):
         self.lineno += t.value.count('\n')
 
     #Ignore jump lines and count lines
-
     @_(r'\n+')
     def ignore_newline(self, t):
         self.lineno += t.value.count('\n')
 
-    #Define tokens
-
-    IDENT = r'[a-zA-Z_][a-zA-Z0-9_]*'
-    IDENT['void'] = VOID
-    IDENT['bool'] = BOOL
-    IDENT['int'] = INT
-    IDENT['float'] = FLOAT
-    IDENT['if'] = IF
-    IDENT['else'] = ELSE
-    IDENT['while'] = WHILE
-    IDENT['return'] = RETURN
-    IDENT['continue'] = CONTINUE
-    IDENT['size'] = SIZE
-    IDENT['new'] = NEW
-    IDENT['class'] = CLASS
-    IDENT['printf'] = PRINTF
-    IDENT['this'] = THIS
-    IDENT['super'] = SUPER
-    IDENT['private'] = PRIVATE
-    IDENT['public'] = PUBLIC
+    @_(r'\d+\.\d+')
+    def FLOATLIT(self, t):
+        t.value = float(t.value)
+        return t
 
     @_(r'\d+')
     def INTLIT(self, t):
         t.value = int(t.value)
-        return t
-
-    @_(r'\d+\.\d+')
-    def FLOATLIT(self, t):
-        t.value = float(t.value)
         return t
 
     @_(r'true|false')
@@ -82,8 +60,29 @@ class Lexer(sly.Lexer):
 
     @_(r'"([^\\"]|\\.)*"')
     def STRINGLIT(self, t):
-        t.value = t.value[1:-1] #Remove quotes
+        t.value = t.value[1:-1]  # Remove quotes
         return t
+
+    #Define tokens
+    IDENT = r'[a-zA-Z_][a-zA-Z0-9_]*'
+    IDENT['void'] = VOID
+    IDENT['bool'] = BOOL
+    IDENT['int'] = INT
+    IDENT['float'] = FLOAT
+    IDENT['if'] = IF
+    IDENT['else'] = ELSE
+    IDENT['while'] = WHILE
+    IDENT['return'] = RETURN
+    IDENT['break'] = BREAK
+    IDENT['continue'] = CONTINUE
+    IDENT['size'] = SIZE
+    IDENT['new'] = NEW
+    IDENT['class'] = CLASS
+    IDENT['printf'] = PRINTF
+    IDENT['this'] = THIS
+    IDENT['super'] = SUPER
+    IDENT['private'] = PRIVATE
+    IDENT['public'] = PUBLIC
 
     #Relational Operators
     EQ = r'=='
@@ -95,6 +94,8 @@ class Lexer(sly.Lexer):
     AND = r'&&'
     OR = r'\|\|'
     NOT = r'!'
+    INCREMENT = r'\+\+'
+    DECREMENT = r'\-\-'
 
     def error(self, t):
         print(f'Error: Illegal character {t.value[0]}')
@@ -125,21 +126,6 @@ def print_tokens():
                 void actualizarEdad(int nuevaEdad) {
                     this.edad = nuevaEdad;
                 }
-    
-                void incrementarEdadHasta(int limite) {
-                    while (this.edad < limite) {
-                        if (this.edad % 2 == 0) {
-                            this.edad++;
-                            continue; 
-                        }
-            
-                        if (this.edad >= 100) {
-                            break;
-                        }
-            
-                        this.edad++;
-                    }
-                }
             };
     
         void main() {
@@ -148,7 +134,6 @@ def print_tokens():
             p.actualizarEdad(26);
             p.mostrarInformacion();
             p.actualizarEdad(99);
-            p.incrementarEdadHasta(105);
             p.mostrarInformacion();
         
             return 0;
