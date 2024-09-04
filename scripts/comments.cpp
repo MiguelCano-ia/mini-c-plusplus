@@ -4,6 +4,7 @@ int main() {
        de múltiples lineas */
     int a = 10;  // Comentario al final de una linea de codigo
     return 0;
+    /* //comentario */
 }
 
 /*
