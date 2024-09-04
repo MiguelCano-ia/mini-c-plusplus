@@ -1,12 +1,12 @@
 int main() {
-    // Este es un comentario de una línea
+    // Este es un comentario de una linea
     /* Este es un comentario
-       de múltiples líneas */
-    int a = 10;  // Comentario al final de una línea de código
+       de múltiples lineas */
+    int a = 10;  // Comentario al final de una linea de codigo
     return 0;
 }
 
 /*
-Comentarios de múltiples líneas
+Comentarios de multiples lineas
 // dentro de comentario
 */

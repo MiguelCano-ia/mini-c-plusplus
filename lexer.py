@@ -29,19 +29,18 @@ class Lexer(sly.Lexer):
     #Ignore spaces and tabs
     ignore = ' \t'
 
-    #Ignore comments of one line
-    @_(r'//.*')
-    def ignore_comment(self, t):
-        pass
-
-    #Ignore comments of multiple lines
-    @_(r'/\*(.|\n)*?\*/')
-    def ignore_comment(self, t):
-        self.lineno += t.value.count('\n')
-
-    #Ignore jump lines and count lines
+    # Ignore jump lines and count lines
     @_(r'\n+')
     def ignore_newline(self, t):
+        self.lineno += t.value.count('\n')
+
+    # Ignore comments
+    @_(r'//.*\n')
+    def ignore_cppcomment(self, t):
+        self.lineno += 1
+
+    @_(r'/\*(.|\n)*\*/')
+    def ignore_comment(self, t):
         self.lineno += t.value.count('\n')
 
     @_(r'\d+\.\d+')
@@ -101,56 +100,6 @@ class Lexer(sly.Lexer):
     def error(self, t):
         print(f'Error: Illegal character {t.value[0]}')
         self.index += 1
-
-
-
-def print_tokens():
-    l = Lexer()
-    d = '''
-        int main() {
-            // Este es un comentario de una línea
-            /* Este es un comentario
-               de múltiples líneas */
-            int a = 10;  // Comentario al final de una línea de código
-            return 0;
-        }
-        class Persona {
-            private:
-                int edad;
-                float altura;
-                string nombre;        
-            public:
-                Persona(int e, float a, string n) {
-                    this.edad = e;
-                    this.altura = a;
-                    this.nombre = n;
-                }
-            
-                void mostrarInformacion() {
-                    printf("Nombre: %s\n", this.nombre);
-                    printf("Edad: %d\n", this.edad);
-                    printf("Altura: %.2f\n", this.altura);
-                }
-            
-                void actualizarEdad(int nuevaEdad) {
-                    this.edad = nuevaEdad;
-                }
-            };
-    
-        void main() {
-            Persona p = new Persona(25, 1.75, "Juan");
-            p.mostrarInformacion();
-            p.actualizarEdad(26);
-            p.mostrarInformacion();
-            p.actualizarEdad(99);
-            p.mostrarInformacion();
-        
-            return 0;
-        }
-    '''
-
-    for tok in l.tokenize(d):
-        print(tok)
 
 def list_scripts(path = 'scripts'):
     scripts = []
