@@ -41,7 +41,7 @@ Este proyecto es un lexer para un subconjunto del lenguaje C++, llamado MiniC++,
 
 ## Uso
 
-  # Ejecución del Lexer
+  ### Ejecución del Lexer
   Para ejecutar el lexer y tokenizar un ejemplo predefinido puedes ejecutral el script principal:
   ```bash
     python lexer.py
