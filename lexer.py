@@ -39,7 +39,7 @@ class Lexer(sly.Lexer):
     def ignore_cppcomment(self, t):
         self.lineno += 1
 
-    @_(r'/\*(.|\n)*\*/')
+    @_(r'/\*([^*]|\*+[^*/])*\*+/')
     def ignore_comment(self, t):
         self.lineno += t.value.count('\n')
 
@@ -136,7 +136,7 @@ if __name__ == '__main__':
 
         if choice.isdigit():
             choice = int(choice)
-            if choice > 0 and choice <= len(scripts):
+            if 0 < choice <= len(scripts):
                 test_script(lexer, scripts[choice-1])
             else:
                 print("Invalid choice")
