@@ -42,6 +42,21 @@ Este proyecto es un lexer para un subconjunto del lenguaje C++, llamado MiniC++,
 ## Uso
 
   ### Ejecución del Lexer
+  
   Para ejecutar el lexer y tokenizar un ejemplo predefinido puedes ejecutral el script principal:
-  ```bash
+    ```bash
     python lexer.py
+  
+
+  ### Pruebas Unitarias
+  
+  Para probar el lexer con scripts en C++, guarda scripts en la carpeta `scripts/`. Luego, ejecuta el script de prueba y selecciona el script que deseas probar
+  
+  ### Estructura de las prubas
+  
+  Cada script en la carpeta `scripts/` debe estar en formato `.cpp` y contener código en MiniC++ (gramatica) para ser tokenizado y validado por el lexer.
+
+## Selección de Scripts
+
+El script `lexer.py` te permite seleccionar el script C++ que deseas probar desde la terminal. Al ejeccutarlo, se listarán los archivos disponibles, y se podrá seleccionar uno ingresando el numero correspondiente.
+
