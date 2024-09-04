@@ -32,3 +32,16 @@ Este proyecto es un lexer para un subconjunto del lenguaje C++, llamado MiniC++,
    git clone https://github.com/usuario/minicpp-lexer.git
 
 2. Navega al directorio del proyecto
+  ```bash
+  cd mini-c-plusplus
+
+3. Instala las dependencias necesarios
+  ```bash
+  pip install sly rich
+
+## Uso
+
+  # Ejecución del Lexer
+  Para ejecutar el lexer y tokenizar un ejemplo predefinido puedes ejecutral el script principal:
+  ```bash
+  python lexer.py
