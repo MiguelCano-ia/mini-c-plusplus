@@ -1,0 +1,4 @@
+.idea/
+__*
+node_modules/
+*.json
