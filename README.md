@@ -35,8 +35,8 @@ Este proyecto es un lexer para un subconjunto del lenguaje C++, llamado MiniC++,
     ```bash
     cd mini-c-plusplus
 
-3. Instala las dependencias necesarios
-  ```bash
+3. Instala las dependencias necesarias
+    ```bash
     pip install sly rich
 
 ## Uso
