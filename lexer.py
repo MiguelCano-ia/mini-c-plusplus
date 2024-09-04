@@ -104,6 +104,13 @@ class Lexer(sly.Lexer):
 def print_tokens():
     l = Lexer()
     d = '''
+        int main() {
+            // Este es un comentario de una línea
+            /* Este es un comentario
+               de múltiples líneas */
+            int a = 10;  // Comentario al final de una línea de código
+            return 0;
+        }
         class Persona {
             private:
                 int edad;
