@@ -2,6 +2,7 @@
 #Lexer for MiniC++ language
 #Nicolas Vega and Miguel Cano
 
+import os
 import sly
 from rich import print
 
@@ -101,6 +102,8 @@ class Lexer(sly.Lexer):
         print(f'Error: Illegal character {t.value[0]}')
         self.index += 1
 
+
+
 def print_tokens():
     l = Lexer()
     d = '''
@@ -108,8 +111,7 @@ def print_tokens():
             private:
                 int edad;
                 float altura;
-                string nombre;
-            
+                string nombre;        
             public:
                 Persona(int e, float a, string n) {
                     this.edad = e;
@@ -143,8 +145,47 @@ def print_tokens():
     for tok in l.tokenize(d):
         print(tok)
 
+def list_scripts(path = 'scripts'):
+    scripts = []
+    for file in os.listdir(path):
+        if file.endswith('.cpp'):
+            scripts.append(file)
+    return scripts
+
+def test_script(lexer, name, path = 'scripts'):
+    script_path = os.path.join(path, name)
+    if os.path.exists(script_path):
+        with open(script_path, 'r') as f:
+            script = f.read()
+            print(f'Running script {name}')
+            for tok in lexer.tokenize(script):
+                print(tok)
+            print('\n')
+    else:
+        print(f'Script {name} not found')
+
 if __name__ == '__main__':
-    print_tokens()
+    lexer = Lexer()
+    scripts = list_scripts()
+
+    if not scripts:
+        print("No C++ scripts found in the 'scripts' directory.")
+    else:
+        print('Aviable scripts:')
+        for i,script in enumerate(scripts,1):
+            print(f"{i}. {script}")
+        print('\n')
+
+        choice = input(f"Select a script to test (1-{len(scripts)}): ")
+
+        if choice.isdigit():
+            choice = int(choice)
+            if choice > 0 and choice <= len(scripts):
+                test_script(lexer, scripts[choice-1])
+            else:
+                print("Invalid choice")
+
+
 
 
 
