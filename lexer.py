@@ -10,7 +10,7 @@ class Lexer(sly.Lexer):
     #Tokens List
     tokens = {
         #Keywords
-        VOID, BOOL, INT, FLOAT, IF, ELSE, WHILE,
+        VOID, BOOL, INT, FLOAT, STRING , IF, ELSE, WHILE,
         RETURN, CONTINUE, SIZE, NEW, CLASS, PRINTF,
         THIS, SUPER, PRIVATE, PUBLIC, BREAK, TRUE, FALSE,
 
@@ -85,6 +85,7 @@ class Lexer(sly.Lexer):
     IDENT['public'] = PUBLIC
     IDENT['true'] = TRUE
     IDENT['false'] = FALSE
+    IDENT['string'] = STRING
 
     #Relational Operators
     EQ = r'=='

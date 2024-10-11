@@ -1,0 +1,16 @@
+digraph {
+	node [fillcolor=lightblue fontcolor=black shape=box style=filled]
+	edge [arrowhead=none]
+	n1 [label="VarDecl 
+name: a 
+type: int"]
+	n2 [label="ConstExpr 
+value: 4"]
+	n1 -> n2 [label=expr]
+	n3 [label="VarDecl 
+name: pinocho 
+type: bool"]
+	n4 [label="ConstExpr 
+value: True"]
+	n3 -> n4 [label=expr]
+}

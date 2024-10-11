@@ -16,7 +16,7 @@ class Visitor (metaclass = multimeta):
 @dataclass
 class Node:
   def accept(self, visitor: Visitor):
-    return visitor.visit(self, *args, **kwargs)
+    return visitor.visit(self)
   
 @dataclass
 class Expression (Node):
@@ -41,8 +41,8 @@ class FuncDecl(Declaration):
   
 @dataclass
 class VarDecl(Declaration):
-  ident : str
   var_type : str
+  ident : str
   expr : Expression = None
   
 @dataclass
@@ -50,7 +50,12 @@ class ClassDecl(Declaration):
   ident : str
   super_class : str
   body : List[Statement] = field(default_factory = list)
-
+  
+@dataclass
+class ArrayDecl(Declaration):
+  var_type : str
+  ident : str
+  size : Expression
 '''
 Acciones sin valores asociados
 '''
@@ -66,11 +71,14 @@ class ExprStmt(Statement):
 class NullStmt (Statement):
   pass
 
+  
+
 @dataclass
 class IfStmt(Statement):
   cond : Expression
   then_stmt : List[Statement] = field(default_factory = list)
-  else_stmt : List[Statement] = field(default_factory = list)
+  else_cond : Expression = None
+  else_stmt : List[Statement] = field(default_factory = list) 
   
 @dataclass
 class ReturnStmt(Statement):
@@ -140,7 +148,7 @@ class ConstExpr(Expression):
 @dataclass
 class VarExpr(Expression):
   ident : str
-  
+    
 @dataclass
 class ArrayLookupExpr(Expression):
   ident : VarExpr
@@ -208,22 +216,27 @@ class MakeDot(Visitor):
     return f'n{self.sequence}'
   
   #Declaraciones
-  def visit (self, fd: FuncDecl ):
+  def visit(self, fd: FuncDecl):
     name = self.name()
-    self.dot.node(name, f'FuncDecl \ntype: {fd.return_type} \nname: {fd.ident}\nparams: {fd.params}')
-    self.dot.edge(name,self.visit(fd.body))
+    self.dot.node(name, f'FuncDecl \ntype: {fd.return_type} \nname: {fd.ident}')
+    for param in fd.params:
+        self.dot.edge(name, self.visit(param), label='param')
+    for stmt in fd.body:
+        self.dot.edge(name, self.visit(stmt), label='body')
+    return name
 
-  def visit (self, vd: VarDecl):
+  def visit(self, vd: VarDecl):
     name = self.name()
     self.dot.node(name, f'VarDecl \nname: {vd.ident} \ntype: {vd.var_type}')
     if vd.expr:
-      self.dot.edge(name,self.visit(vd.expr), label = 'expr')
-    return name  
-  
-  def visit (self, cd: ClassDecl):
+        self.dot.edge(name, self.visit(vd.expr), label='expr')
+    return name
+
+  def visit(self, cd: ClassDecl):
     name = self.name()
     self.dot.node(name, f'ClassDecl \nname: {cd.ident} \nsuper_class: {cd.super_class}')
-    self.dot.edge(name,self.visit(cd.body))
+    for stmt in cd.body:
+        self.dot.edge(name, self.visit(stmt), label='body')
     return name
   
   #Acciones
@@ -324,33 +337,26 @@ class MakeDot(Visitor):
     self.dot.node(name, f'CallExpr \nident: {ce.ident} \nargs: {ce.args}')
     return name
   
-  def visit (self, ce: ConstExpr):
+  def visit(self, ce: ConstExpr):
     name = self.name()
-    value = ce.value
-    if ce.value is None:
-      value = 'None'
-    elif ce.value is True:
-      value = 'True'
-    elif ce.value is False:
-      value = 'False'
-    self.dot.node(name, f'ConstExpr \nvalue: {value}')
+    self.dot.node(name, f'ConstExpr \nvalue: {ce.value}')
     return name
-  
-  def visit (self, ve: VarExpr):
+
+  def visit(self, ve: VarExpr):
     name = self.name()
     self.dot.node(name, f'VarExpr \nident: {ve.ident}')
     return name
-  
-  def visit (self, ale: ArrayLookupExpr):
+
+  def visit(self, ale: ArrayLookupExpr):
     name = self.name()
-    self.dot.name(name, f'ArrayLookupExpr\nident: {ale.ident}')
-    self.dot.edge(name,self.visit(ale.index), label = 'index')
+    self.dot.node(name, f'ArrayLookupExpr\nident: {ale.ident}')
+    self.dot.edge(name, self.visit(ale.index), label='index')
     return name
-  
-  def visit (self, vae: VarAssignExpr):
+
+  def visit(self, vae: VarAssignExpr):
     name = self.name()
     self.dot.node(name, f'VarAssignExpr \nident: {vae.ident}')
-    self.dot.edge(name,self.visit(vae.expr), label = 'expr')
+    self.dot.edge(name, self.visit(vae.expr), label='expr')
     return name
   
   def visit (self, aae: ArrayAssignExpr):
@@ -390,6 +396,5 @@ class MakeDot(Visitor):
     self.dot.edge(name,self.visit(ge.expr), label = 'expr')
     return name
   
-  def generate_dot(self, node):
-    self.dot.save('ast.dot')
-    return self.dot.source
+  def generate_dot(self):
+    self.dot.render('ast', view=True) 
