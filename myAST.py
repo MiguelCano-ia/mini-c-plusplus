@@ -72,7 +72,6 @@ class NullStmt (Statement):
   pass
 
   
-
 @dataclass
 class IfStmt(Statement):
   cond : Expression
@@ -119,8 +118,8 @@ class ThisStmt(Statement):
 
 @dataclass
 class SuperStmt(Statement):
-  pass
-
+  args_list : List[Expression] = field(default_factory = list)
+  
 @dataclass
 class PrivateStmt(Statement):
   pass

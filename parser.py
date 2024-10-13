@@ -15,11 +15,13 @@ class Parser(sly.Parser):
     ('left', '='),
     ('left', OR),
     ('left', AND),
-    ('left', EQ, NE),
-    ('left', LT, LE, GT, GE ),
+    ('nonassoc', EQ, NE),
+    ('nonassoc', LT, LE, GT, GE ),
     ('left', '+', '-'),
     ('left', '*', '/', '%'),
+    ('right', 'NOT'),
     ('right', UNARY,'!'),
+    ('right', 'IFX')
   )
   
   # Debug para ver el proceso de parsing
@@ -38,17 +40,21 @@ class Parser(sly.Parser):
   def decl_list(self,p):
     return [p.decl]
 
-  @_("var_decl", "func_decl")
+  @_("var_decl", "func_decl", "class_decl")
   def decl(self,p):
     return p[0]
+  
+  @_("CLASS IDENT '{' compound_stmt '}'")
+  def class_decl(self,p):
+    return ClassDecl(p.IDENT, p.class_body)
   
   @_("type_spec IDENT '(' param_list ')' compound_stmt")
   def func_decl(self,p):
     return FuncDecl(p.type_spec, p.IDENT, p.param_list, p.compound_stmt)
   
-  @_("param_list", "VOID")
+  @_("param", "empty")
   def param_list(self,p):
-    return p[0]
+    return [p[0]] if p.param else []
   
   @_("param_list ',' param")
   def param_list(self,p):
@@ -66,57 +72,40 @@ class Parser(sly.Parser):
   def compound_stmt(self,p):
     return list(p.local_decls) + list(p.stmt_list)
   
-  @_("local_decls", "empty")
+  @_("var_decl local_decls", "empty")
   def local_decls(self,p):
-    return p[0]
+    if p == "empty":
+      return []
+    else:
+      return [p.var_decl] + p.local_decls
   
-  @_("local_decls var_decl")
-  def local_decls(self,p):
-    return p.local_decls + [p.var_decl]
-  
-  @_("stmt_list", "empty")
+  @_("empty")
   def stmt_list(self,p):
-    return p[0]
+    return []
   
-  @_("stmt_list stmt")
+  @_("stmt stmt_list")
   def stmt_list(self,p):
-    return p.stmt_list + [p.stmt]
+    return [p.stmt] + p.stmt_list
   
-  @_("stmt")
-  def stmt_list(self,p):
-    return [p.stmt]
-  
-  @_("expr_stmt", "compound_stmt", "if_stmt", "return_stmt", "while_stmt","break_stmt", "continue_stmt", "print_stmt", "new_stmt" ,"this_stmt", "private_stmt", "public_stmt")
+  @_("expr_stmt", "compound_stmt", "if_stmt", "return_stmt", "while_stmt","break_stmt", "continue_stmt", "print_stmt", "new_stmt" ,"this_stmt", "private_stmt", "public_stmt", "super_stmt")
   def stmt(self,p):
     return p[0]
+  
+  @_("SUPER '(' args_list ')' ';'")
+  def super_stmt(self,p):
+    return SuperStmt(p.args_list)
   
   @_("expr ';'")
   def expr_stmt(self,p):
     return ExprStmt(p.expr)
-  
-  @_("IF '(' expr ')' stmt")
-  def if_stmt(self,p):
+
+  @_("IF '(' expr ')' stmt %prec IFX")
+  def if_stmt(self, p):
     return IfStmt(cond=p.expr, then_stmt=p.stmt)
-  
-  @_("IF '(' expr ')' '{' stmt '}'")
-  def if_stmt(self,p):
-    return IfStmt(cond=p.expr, then_stmt=p.stmt_list)
-  
+
   @_("IF '(' expr ')' stmt ELSE stmt")
-  def if_stmt(self,p):
+  def if_stmt(self, p):
     return IfStmt(cond=p.expr, then_stmt=p.stmt0, else_stmt=p.stmt1)
-  
-  @_("IF '(' expr ')' '{' stmt '}' ELSE stmt")
-  def if_stmt(self,p):
-    return IfStmt(cond=p.expr, then_stmt=p.stmt_list, else_stmt=p.stmt)
-  
-  @_("IF '(' expr ')' stmt ELSE '{' stmt '}'")
-  def if_stmt(self,p):
-    return IfStmt(cond=p.expr, then_stmt=p.stmt, else_stmt=p.stmt_list)
-  
-  @_("IF '(' expr ')' '{' stmt '}' ELSE '{' stmt '}'")
-  def if_stmt(self,p):
-    return IfStmt(cond=p.expr, then_stmt=p.stmt_list0, else_stmt=p.stmt_list1)
   
   @_("PRIVATE ':' stmt")
   def private_stmt(self,p):
@@ -134,7 +123,7 @@ class Parser(sly.Parser):
   def return_stmt(self,p):
     return ReturnStmt(p.expr)
   
-  @_("WHILE '(' stmt ')' expr")
+  @_("WHILE '(' expr ')' stmt")
   def while_stmt(self,p):
     return WhileStmt(cond=p.expr, body=p.stmt)
   
@@ -150,7 +139,7 @@ class Parser(sly.Parser):
   def new_stmt(self,p):
     return NewStmt(ident=p.IDENT, class_type=p.IDENT0, args=p.args_list)
   
-  @_("args_list", "empty")
+  @_("empty")
   def args_list(self,p):
     return p[0]
   
@@ -183,7 +172,7 @@ class Parser(sly.Parser):
   def type_spec(self,p):
     return p[0]
   
-  @_("INTLIT", "FLOATLIT", "BOOLIT", "STRINGLIT")
+  @_("INTLIT", "FLOATLIT", "BOOLIT", "STRINGLIT", "TRUE", "FALSE")
   def expr(self,p):
     return ConstExpr(p[0])
   
@@ -226,7 +215,10 @@ class Parser(sly.Parser):
   
   @_("'-' expr %prec UNARY",
      "'!' expr %prec UNARY",
-     "'+' expr %prec UNARY")
+     "'+' expr %prec UNARY",
+     "INCREMENT expr %prec UNARY",
+     "DECREMENT expr %prec UNARY",
+     "NOT expr %prec UNARY")
   def expr(self,p):
     return UnaryExpr(p[0], p.expr)
   
@@ -264,7 +256,7 @@ if __name__ == "__main__":
   tokens = lexer.tokenize(data)
   
   # Imprimir los tokens generados
-  print("[bold green]Tokens generados por el lexer:[/bold green]")
+  print(f"[bold green]Tokens generados por el lexer:[/bold green]")
   for token in tokens:
     print(token)
   
@@ -273,6 +265,7 @@ if __name__ == "__main__":
   
   # Pasar los tokens al parser
   ast = parser.parse(tokens)
+  print(f"[bold green]AST generado por el parser:[/bold green]")
   print(ast)
 
   #Dibujar el AST
@@ -282,13 +275,3 @@ if __name__ == "__main__":
   #   expr.accept(dot)
     
   # dot.generate_dot()
-  
-  #contar conflictos
-  with open('parser.out') as f:
-    output = f.read()
-  
-  reduce_reduce = output.count('reduce/reduce conflict')
-  shift_reduce = output.count('shift/reduce conflict')
-  
-  print(f"Reduce/Reduce: {reduce_reduce}")
-  print(f"Shift/Reduce: {shift_reduce}")
