@@ -52,9 +52,9 @@ class Parser(sly.Parser):
   def func_decl(self,p):
     return FuncDecl(p.type_spec, p.IDENT, p.param_list, p.compound_stmt)
   
-  @_("param", "empty")
+  @_("empty")
   def param_list(self,p):
-    return [p[0]] if p.param else []
+    return []
   
   @_("param_list ',' param")
   def param_list(self,p):
@@ -72,12 +72,13 @@ class Parser(sly.Parser):
   def compound_stmt(self,p):
     return list(p.local_decls) + list(p.stmt_list)
   
-  @_("var_decl local_decls", "empty")
+  @_("var_decl local_decls")
   def local_decls(self,p):
-    if p == "empty":
-      return []
-    else:
       return [p.var_decl] + p.local_decls
+  
+  @_("empty")
+  def local_decls(self,p):
+    return []
   
   @_("empty")
   def stmt_list(self,p):
@@ -154,7 +155,6 @@ class Parser(sly.Parser):
   @_("THIS ';'")
   def this_stmt(self,p):
     return ThisStmt()
-  
   
   @_("type_spec IDENT ';' ")
   def var_decl(self,p):
@@ -240,38 +240,4 @@ class Parser(sly.Parser):
     value = p.value if p else "EOF"
     print(f"[bold red]Error de sintaxis en linea {lineo} en el valor {value}[/bold red]")
     
-
-if __name__ == "__main__":
-  lexer = Lexer()
-  parser = Parser()
-  
-  data = '''
-  int a = 10;
-  float b = 3.14;
-  bool isTrue = false;
-  string name = "Mini C++";
-  '''
-  
-  # Obtener los tokens
-  tokens = lexer.tokenize(data)
-  
-  # Imprimir los tokens generados
-  print(f"[bold green]Tokens generados por el lexer:[/bold green]")
-  for token in tokens:
-    print(token)
-  
-  # Volver a obtener los tokens para el parser
-  tokens = lexer.tokenize(data)
-  
-  # Pasar los tokens al parser
-  ast = parser.parse(tokens)
-  print(f"[bold green]AST generado por el parser:[/bold green]")
-  print(ast)
-
-  #Dibujar el AST
-  # dot = MakeDot()
-  
-  # for expr in ast.stmts:
-  #   expr.accept(dot)
     
-  # dot.generate_dot()
