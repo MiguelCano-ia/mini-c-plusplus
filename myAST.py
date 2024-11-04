@@ -277,7 +277,9 @@ class MakeDot(Visitor):
   
   def visit(self, ad : ArrayDecl):
     name = self.name()
-    self.dot.node(name, label = f'{ad.var_type} {ad.ident}[{ad.size.accept(self)}]')
+    self.dot.node(name, label = f'{ad.var_type} {ad.ident}')
+    size_name = self.visit(ad.size)
+    self.dot.edge(name, size_name, label='Size')
     return name
 
   def visit(self, es : ExprStmt):
@@ -297,15 +299,7 @@ class MakeDot(Visitor):
     self.dot.node(name, label = 'If')
     cond_name = is_.cond.accept(self)
     self.dot.edge(name, cond_name)
-    for stmt in is_.then_stmt:
-      stmt_name = stmt.accept(self)
-      self.dot.edge(name, stmt_name)
-    if is_.else_cond:
-      else_name = is_.else_cond.accept(self)
-      self.dot.edge(name, else_name)
-      for stmt in is_.else_stmt:
-        stmt_name = stmt.accept(self)
-        self.dot.edge(name, stmt_name)
+    
     return name
   
   def visit (self, rs : ReturnStmt):
@@ -430,9 +424,9 @@ class MakeDot(Visitor):
   
   def visit(self, aae : ArrayAssignExpr):
     name = self.name()
-    self.dot.node(name, label = f'{aae.ident}[{aae.index.accept(self)}] =')
-    expr_name = aae.expr.accept(self)
-    self.dot.edge(name, expr_name)
+    self.dot.node(name, label = f'{aae.ident} =')
+    size_name = self.visit(aae.index)
+    self.dot.edge(name, size_name, label='Size')
     return name
   
   def visit(self, ase : ArraySizeExpr):

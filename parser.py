@@ -205,9 +205,9 @@ class Parser(sly.Parser):
   def var_decl(self,p):
     return VarDecl(p.type_spec, p.IDENT, p.expr)
   
-  @_("type_spec IDENT '[' INTLIT ']' ';' ")
+  @_("type_spec IDENT '[' expr ']' ';' ")
   def var_decl(self,p):
-    return ArrayDecl(p.type_spec,p.IDENT, p.INTLIT)
+    return ArrayDecl(p.type_spec,p.IDENT, p.expr)
   
   @_("IDENT IDENT ';'")
   def var_decl_instance(self, p):
@@ -259,7 +259,7 @@ class Parser(sly.Parser):
      "expr '/' expr",
      "expr '%' expr")
   def expr(self,p):
-    return BinaryExpr(p[1], p.expr0, p.expr1)
+    return BinaryExpr(p.expr0,p[1], p.expr1)
   
   
   @_("'-' expr %prec UNARY",
