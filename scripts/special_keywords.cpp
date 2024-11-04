@@ -5,7 +5,7 @@ public:
     }
 };
 
-class Derived : public Base {
+class Derived :cls public Base {
 public:
     void display() {
         Base::display();  

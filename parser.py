@@ -243,7 +243,7 @@ class Parser(sly.Parser):
   
   @_("IDENT '.' IDENT '(' args_list ')'")
   def expr(self,p):
-    return CallExpr(p.IDENT1, p.args_list)
+    return CallExpr(object_name=p.IDENT0, ident = p.IDENT1,args= p.args_list)
 
   @_("expr OR expr",
      "expr AND expr",

@@ -140,6 +140,7 @@ Expresiones con valores asociados
 @dataclass
 class CallExpr(Expression):
   ident : str
+  object_name : str = None
   args : List[Expression] = field(default_factory = list)
   
 
@@ -296,29 +297,33 @@ class MakeDot(Visitor):
     name = self.name()
     self.dot.node(name, label='If')
     
-    # Nodo y borde para la condición
     cond_name = self.name()
     self.dot.node(cond_name, label='Cond')
     cond_expr_name = is_.cond.accept(self)
     self.dot.edge(cond_name, cond_expr_name)
     self.dot.edge(name, cond_name)
     
-    # Nodo y borde para el bloque "Then"
+    
     then_name = self.name()
     self.dot.node(then_name, label='Then')
     for stmt in is_.then_stmt:
       stmt_name = stmt.accept(self)
       self.dot.edge(then_name, stmt_name)
     self.dot.edge(name, then_name)
-    
-    # Manejo de "Else" solo si existen declaraciones en el bloque else_stmt
+
     if is_.else_stmt:
       else_name = self.name()
       self.dot.node(else_name, label='Else')
-      else_stmt_name = is_.else_stmt.accept(self)
-      self.dot.edge(else_name, else_stmt_name)
-      self.dot.edge(name, else_name)
       
+      if isinstance(is_.else_stmt, list):
+        for stmt in is_.else_stmt:
+          stmt_name = stmt.accept(self)
+          self.dot.edge(else_name, stmt_name)
+      else:
+        else_stmt_name = is_.else_stmt.accept(self)
+        self.dot.edge(else_name, else_stmt_name)
+      
+      self.dot.edge(name, else_name)
     return name
 
   def visit (self, rs : ReturnStmt):
@@ -413,7 +418,11 @@ class MakeDot(Visitor):
   
   def visit(self, ce : CallExpr):
     name = self.name()
-    self.dot.node(name, label = f'Call {ce.ident}')
+    
+    if ce.object_name:
+      self.dot.node(name, label = f'Call {ce.object_name}.{ce.ident}')
+    else:
+      self.dot.node(name, label = f'Call {ce.ident}')
     for arg in ce.args:
       arg_name = arg.accept(self)
       self.dot.edge(name, arg_name)
