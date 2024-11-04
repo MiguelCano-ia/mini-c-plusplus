@@ -57,9 +57,10 @@ class ArrayDecl(Declaration):
   size : Expression
   
 @dataclass
-class InstanceDecl(Declaration):
+class ObjectDecl(Declaration):
   class_type: str
   instance_name: str
+  args : List[Expression] = field(default_factory = list)
 
 '''
 Acciones sin valores asociados
@@ -80,7 +81,6 @@ class NullStmt (Statement):
 class IfStmt(Statement):
   cond : Expression
   then_stmt : List[Statement] = field(default_factory = list)
-  else_cond : Expression = None
   else_stmt : List[Statement] = field(default_factory = list) 
   
 @dataclass
@@ -110,12 +110,6 @@ class PrintStmt(Statement):
 class ContinueStmt(Statement):
   pass
 
-@dataclass
-class NewStmt(Statement):
-  class_type : str
-  ident : str
-  args : List[Expression] = field(default_factory = list)
-  is_heap : bool = False
   
 @dataclass
 class SizeStmt(Statement):
@@ -231,7 +225,11 @@ class MakeDot(Visitor):
 
   def visit(self, fd : FuncDecl):
     name = self.name()
-    self.dot.node(name, label = f'Function\n{fd.return_type} {fd.ident}')
+    
+    if(fd.return_type == None):
+      self.dot.node(name, label = f'Constructor\n{fd.ident}')
+    else:
+      self.dot.node(name, label = f'Function\n{fd.return_type} {fd.ident}')
     
     params_name = self.name()
     body_name = self.name()
@@ -296,12 +294,33 @@ class MakeDot(Visitor):
   
   def visit(self, is_ : IfStmt):
     name = self.name()
-    self.dot.node(name, label = 'If')
-    cond_name = is_.cond.accept(self)
+    self.dot.node(name, label='If')
+    
+    # Nodo y borde para la condición
+    cond_name = self.name()
+    self.dot.node(cond_name, label='Cond')
+    cond_expr_name = is_.cond.accept(self)
+    self.dot.edge(cond_name, cond_expr_name)
     self.dot.edge(name, cond_name)
     
+    # Nodo y borde para el bloque "Then"
+    then_name = self.name()
+    self.dot.node(then_name, label='Then')
+    for stmt in is_.then_stmt:
+      stmt_name = stmt.accept(self)
+      self.dot.edge(then_name, stmt_name)
+    self.dot.edge(name, then_name)
+    
+    # Manejo de "Else" solo si existen declaraciones en el bloque else_stmt
+    if is_.else_stmt:
+      else_name = self.name()
+      self.dot.node(else_name, label='Else')
+      else_stmt_name = is_.else_stmt.accept(self)
+      self.dot.edge(else_name, else_stmt_name)
+      self.dot.edge(name, else_name)
+      
     return name
-  
+
   def visit (self, rs : ReturnStmt):
     name = self.name()
     self.dot.node(name, label = 'Return')
@@ -352,12 +371,16 @@ class MakeDot(Visitor):
     self.dot.node(name, label = 'Continue')
     return name
   
-  def visit(self, ns : NewStmt):
+  def visit(self, ns : ObjectDecl):
     name = self.name()
-    self.dot.node(name, label = f'New {ns.class_type}')
-    for arg in ns.args:
-      arg_name = arg.accept(self)
-      self.dot.edge(name, arg_name)
+    self.dot.node(name, label = f'Object\n{ns.class_type} {ns.instance_name}')
+    if ns.args:
+      args_name = self.name()
+      self.dot.node(args_name, label = 'Args')
+      for arg in ns.args:
+        arg_name = arg.accept(self)
+        self.dot.edge(args_name, arg_name)
+      self.dot.edge(name, args_name)
     return name
   
   def visit(self, ss : SizeStmt):
@@ -365,7 +388,7 @@ class MakeDot(Visitor):
     self.dot.node(name, label = f'Size {ss.ident}')
     return name
   
-  def vist (self, ts : ThisStmt):
+  def visit(self, ts : ThisStmt):
     name = self.name()
     self.dot.node(name, label = 'This')
     return name

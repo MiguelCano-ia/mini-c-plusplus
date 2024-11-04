@@ -40,7 +40,7 @@ class Parser(sly.Parser):
   def decl_list(self,p):
     return [p.decl]
 
-  @_("var_decl", "func_decl", "class_decl", "var_decl_instance")
+  @_("var_decl", "func_decl", "class_decl", "object_decl")
   def decl(self,p):
     return p[0]
   
@@ -121,7 +121,7 @@ class Parser(sly.Parser):
     return [p.stmt] + p.stmt_list
   
   @_("expr_stmt", "compound_stmt", "if_stmt", "return_stmt", "while_stmt","break_stmt", 
-     "continue_stmt", "print_stmt", "new_stmt" ,"this_stmt", "private_stmt", "public_stmt", "super_stmt", "var_decl_instance")
+     "continue_stmt", "print_stmt", "private_stmt", "public_stmt", "super_stmt", "object_decl")
   def stmt(self,p):
     return p[0]
   
@@ -173,10 +173,6 @@ class Parser(sly.Parser):
   def continue_stmt(self,p):
     return ContinueStmt()
   
-  @_("IDENT '=' NEW IDENT '(' args_list ')' ';'" )
-  def new_stmt(self,p):
-    return NewStmt(ident=p.IDENT0, class_type=p.IDENT1, args=p.args_list)
-  
   @_("empty")
   def args_list(self,p):
     return []
@@ -210,8 +206,12 @@ class Parser(sly.Parser):
     return ArrayDecl(p.type_spec,p.IDENT, p.expr)
   
   @_("IDENT IDENT ';'")
-  def var_decl_instance(self, p):
-    return InstanceDecl(class_type=p.IDENT0, instance_name=p.IDENT1)
+  def object_decl(self, p):
+    return ObjectDecl(class_type=p.IDENT0, instance_name=p.IDENT1, args=None)
+  
+  @_("IDENT IDENT '=' NEW IDENT '(' args_list ')' ';'")
+  def object_decl(self, p):
+    return ObjectDecl(class_type=p.IDENT0, instance_name=p.IDENT1, args=p.args_list)
   
   @_("VOID", "INT", "FLOAT", "BOOL", "STRING")
   def type_spec(self,p):
