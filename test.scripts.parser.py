@@ -39,8 +39,15 @@ def tryParser():
       
     tokens = lexer.tokenize(data)
     ast = parser.parse(tokens)
-    print(ast)
+    
+    print (ast)
+
     dot = MakeDot()
+    
+    for expr in ast.stmts:
+      expr.accept(dot)
+    
+    ast_dot = dot.generate_dot()
     
     
     

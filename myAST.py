@@ -15,8 +15,8 @@ class Visitor (metaclass = multimeta):
 
 @dataclass
 class Node:
-  def accept(self, visitor: Visitor):
-    return visitor.visit(self)
+  def accept(self, v: Visitor):
+    return v.visit(self)
   
 @dataclass
 class Expression (Node):
@@ -44,7 +44,6 @@ class VarDecl(Declaration):
   var_type : str
   ident : str
   expr : Expression = None
-  
 @dataclass
 class ClassDecl(Declaration):
   ident : str
@@ -92,6 +91,12 @@ class WhileStmt(Statement):
   cond : Expression
   body : List[Statement] = field(default_factory = list)
   
+@dataclass
+class ForStmt(Statement):
+  var_increment : VarDecl
+  cond : Expression
+  increment : Expression
+  body : List[Statement] = field(default_factory = list)
 @dataclass
 class PrintStmt(Statement):
   expr : Expression
@@ -188,212 +193,281 @@ class GroupingExpr(Expression):
   expr: Expression
   
 
-
 @dataclass
 class MakeDot(Visitor):
-  
   node_default = {
-    'shape': 'box',
-    'style': 'filled',
-    'fillcolor': 'lightblue',
-    'fontcolor': 'black'
+    'shape' : 'box',
+    'style' : 'filled',
+    'fillcolor' : 'lightblue',
+    'fontcolor' : 'black',
+    'font' : 'bold'
   }
 
   edge_default = {
-    'arrowhead': 'none'
+    'color' : 'black',
+    'arrowhead' : 'none'
   }
-
-  def __post_init__(self):
-    self.dot = Digraph()  # Crear una nueva instancia de Digraph para cada diagrama.
-    self.dot.attr('node', **self.node_default)
-    self.dot.attr('edge', **self.edge_default)
-    self.sequence = 0  # Reiniciar la secuencia de nodos.
-
-  def name(self):
-    """Generar nombres únicos para los nodos del diagrama."""
+  
+  dot = Digraph('ast')
+  dot.attr('node', **node_default)
+  dot.attr('edge', **edge_default)
+  
+  sequence = 0
+  
+  def name(self):  
     self.sequence += 1
     return f'n{self.sequence}'
   
-  #Declaraciones
-  def visit(self, fd: FuncDecl):
+  def visit(self, p : Program):
     name = self.name()
-    self.dot.node(name, f'FuncDecl \ntype: {fd.return_type} \nname: {fd.ident}')
-    for param in fd.params:
-        self.dot.edge(name, self.visit(param), label='param')
-    for stmt in fd.body:
-        self.dot.edge(name, self.visit(stmt), label='body')
-    return name
-
-  def visit(self, vd: VarDecl):
-    name = self.name()
-    self.dot.node(name, f'VarDecl \nname: {vd.ident} \ntype: {vd.var_type}')
-    if vd.expr:
-        self.dot.edge(name, self.visit(vd.expr), label='expr')
-    return name
-
-  def visit(self, cd: ClassDecl):
-    name = self.name()
-    self.dot.node(name, f'ClassDecl \nname: {cd.ident} \nsuper_class: {cd.super_class}')
-    for stmt in cd.body:
-        self.dot.edge(name, self.visit(stmt), label='body')
-    return name
-  
-  #Acciones
-  
-  def visit (self, p: Program):
-    name = self.name()
-    self.dot.node(name, 'Program')
+    self.dot.node(name, label = 'Program')
     for stmt in p.stmts:
-      self.dot.edge(name,self.visit(stmt))
+      stmt_name = stmt.accept(self)
+      self.dot.edge(name, stmt_name)
     return name
-  
-  def visit (self, es: ExprStmt):
+
+  def visit(self, fd : FuncDecl):
     name = self.name()
-    self.dot.node(name, 'ExprStmt')
-    self.dot.edge(name,self.visit(es.expr))
+    self.dot.node(name, label = f'Function\n{fd.return_type} {fd.ident}')
+    
+    params_name = self.name()
+    body_name = self.name()
+    
+    if(fd.params):
+      self.dot.node(params_name, label = 'Params')
+      for param in fd.params:
+        param_name = param.accept(self)
+        self.dot.edge(params_name, param_name)
+      self.dot.edge(name, params_name)
+    
+    self.dot.edge(name, body_name)
+    self.dot.node(body_name, label = 'Body')
+    
+    for stmt in fd.body:
+      stmt_name = stmt.accept(self)
+      self.dot.edge(body_name, stmt_name)
+    
+      
     return name
-  
-  def visit (self, ns: NullStmt):
+    
+      
+  def visit(self, vd : VarDecl):
     name = self.name()
-    self.dot.node(name, 'NullStmt')
-    return name
-  
-  def visit (self, is_: IfStmt):
-    name = self.name()
-    self.dot.node(name, 'IfStmt')
-    self.dot.edge(name,self.visit(is_.cond), label = 'cond')
-    if is_.then_stmt:
-      self.dot.edge(name,self.visit(is_.then_stmt), label = 'then_stmt')  
-    if is_.else_stmt:
-      self.dot.edge(name,self.visit(is_.else_stmt), label = 'else_stmt')
-    return name
-  
-  def visit (self, rs: ReturnStmt):
-    name = self.name()
-    self.dot.node(name, 'ReturnStmt')
-    if rs.expr:
-      self.dot.edge(name,self.visit(rs.expr), label = 'expr')
-    return name
-  
-  def visit (self, bs: BreakStmt):
-    name = self.name()
-    self.dot.node(name, 'BreakStmt')
-    return name
-  
-  def visit (self, ws: WhileStmt):
-    name = self.name()
-    self.dot.node(name, 'WhileStmt')
-    self.dot.edge(name,self.visit(ws.cond), label = 'cond')
-    self.dot.edge(name,self.visit(ws.body), label = 'body')
-    return name
-  
-  def visit (self, ps: PrintStmt):
-    name = self.name()
-    self.dot.node(name, 'PrintStmt')
-    self.dot.edge(name,self.visit(ps.expr), label = 'expr')
-    return name
-  
-  def visit (self, cs: ContinueStmt):
-    name = self.name()
-    self.dot.node(name, 'ContinueStmt')
-    return name
-  
-  def visit (self, ns: NewStmt):
-    name = self.name()
-    if ns.is_heap:
-      self.dot.node(name, f'NewStmt \nclass_type: {ns.class_type} \nident: {ns.ident} \nargs: {ns.args}')
+    if vd.expr:
+      self.dot.node(name, label = f'{vd.var_type} {vd.ident} =')
+      expr_name = vd.expr.accept(self)
+      self.dot.edge(name, expr_name)
     else:
-      self.dot.node(name, f'NewStmt \nclass_type: {ns.class_type} \nident: {ns.ident} \nargs: {ns.args} \nstack')
+      self.dot.node(name, label = f'{vd.var_type} {vd.ident}')
     return name
   
-  def visit (self, ss: SizeStmt):
+  def visit(self, cd : ClassDecl):
     name = self.name()
-    self.dot.node(name, f'SizeStmt \nident: {ss.ident}')
+    if cd.super_class:
+      self.dot.node(name, label = f'Class\n{cd.ident} : {cd.super_class}')
+    else:
+      self.dot.node(name, label = f'Class\n{cd.ident}')
+    for stmt in cd.body:
+      stmt_name = stmt.accept(self)
+      self.dot.edge(name, stmt_name)
+    return name
+  
+  def visit(self, ad : ArrayDecl):
+    name = self.name()
+    self.dot.node(name, label = f'{ad.var_type} {ad.ident}[{ad.size.accept(self)}]')
     return name
 
-  def visit (self, ts: ThisStmt):
+  def visit(self, es : ExprStmt):
     name = self.name()
-    self.dot.node(name, 'ThisStmt')
-    return name
-  
-  def visit (self, ss: SuperStmt):
-    name = self.name()
-    self.dot.node(name, 'SuperStmt')
-    return name
-  
-  def visit (self, ps: PrivateStmt):
-    name = self.name()
-    self.dot.node(name, 'PrivateStmt')
-    return name
-  
-  def visit (self, ps: PublicStmt):
-    name = self.name()
-    self.dot.node(name, 'PublicStmt')
-    return name
-  
-  def visit (self, ce: CallExpr):
-    name = self.name()
-    self.dot.node(name, f'CallExpr \nident: {ce.ident} \nargs: {ce.args}')
-    return name
-  
-  def visit(self, ce: ConstExpr):
-    name = self.name()
-    self.dot.node(name, f'ConstExpr \nvalue: {ce.value}')
+    self.dot.node(name, label = 'Expression')
+    expr_name = es.expr.accept(self)
+    self.dot.edge(name, expr_name)
     return name
 
-  def visit(self, ve: VarExpr):
+  def visit(self, ns : NullStmt):
     name = self.name()
-    self.dot.node(name, f'VarExpr \nident: {ve.ident}')
+    self.dot.node(name, label = 'Null')
+    return name
+  
+  def visit(self, is_ : IfStmt):
+    name = self.name()
+    self.dot.node(name, label = 'If')
+    cond_name = is_.cond.accept(self)
+    self.dot.edge(name, cond_name)
+    for stmt in is_.then_stmt:
+      stmt_name = stmt.accept(self)
+      self.dot.edge(name, stmt_name)
+    if is_.else_cond:
+      else_name = is_.else_cond.accept(self)
+      self.dot.edge(name, else_name)
+      for stmt in is_.else_stmt:
+        stmt_name = stmt.accept(self)
+        self.dot.edge(name, stmt_name)
+    return name
+  
+  def visit (self, rs : ReturnStmt):
+    name = self.name()
+    self.dot.node(name, label = 'Return')
+    if rs.expr:
+      expr_name = rs.expr.accept(self)
+      self.dot.edge(name, expr_name)
     return name
 
-  def visit(self, ale: ArrayLookupExpr):
+  def visit(self, bs : BreakStmt):
     name = self.name()
-    self.dot.node(name, f'ArrayLookupExpr\nident: {ale.ident}')
-    self.dot.edge(name, self.visit(ale.index), label='index')
-    return name
-
-  def visit(self, vae: VarAssignExpr):
-    name = self.name()
-    self.dot.node(name, f'VarAssignExpr \nident: {vae.ident}')
-    self.dot.edge(name, self.visit(vae.expr), label='expr')
+    self.dot.node(name, label = 'Break')
     return name
   
-  def visit (self, aae: ArrayAssignExpr):
+  
+  def visit(self, ws : WhileStmt):
     name = self.name()
-    self.dot.node(name, f'ArrayAssignExpr \nident: {aae.ident}')
-    self.dot.edge(name,self.visit(aae.index), label = 'index')
-    self.dot.edge(name,self.visit(aae.expr), label = 'expr')
+    self.dot.node(name, label = 'While')
+    cond_name = ws.cond.accept(self)
+    self.dot.edge(name, cond_name)
+    for stmt in ws.body:
+      stmt_name = stmt.accept(self)
+      self.dot.edge(name, stmt_name)
     return name
   
-  def visit (self, ase: ArraySizeExpr):
+  def visit(self, fs : ForStmt):
     name = self.name()
-    self.dot.node(name, f'ArraySizeExpr \nident: {ase.ident}')
+    self.dot.node(name, label = 'For')
+    var_name = fs.var_increment.accept(self)
+    self.dot.edge(name, var_name)
+    cond_name = fs.cond.accept(self)
+    self.dot.edge(name, cond_name)
+    inc_name = fs.increment.accept(self)
+    self.dot.edge(name, inc_name)
+    for stmt in fs.body:
+      stmt_name = stmt.accept(self)
+      self.dot.edge(name, stmt_name)
     return name
   
-  def visit (self, itfe: IntToFloatExpr):
+  def visit(self, ps : PrintStmt):
     name = self.name()
-    self.dot.node(name, 'IntToFloatExpr')
-    self.dot.edge(name,self.visit(itfe.expr), label = 'expr')
+    self.dot.node(name, label = 'Print')
+    expr_name = ps.expr.accept(self)
+    self.dot.edge(name, expr_name)
     return name
   
-  def visit (self, be: BinaryExpr):
+  def visit(self, cs : ContinueStmt):
     name = self.name()
-    self.dot.node(name, f'BinaryExpr \noperand: {be.operand}')
-    self.dot.edge(name,self.visit(be.left), label = 'left')
-    self.dot.edge(name,self.visit(be.right), label = 'right')
+    self.dot.node(name, label = 'Continue')
     return name
   
-  def visit (self, ue: UnaryExpr):
+  def visit(self, ns : NewStmt):
     name = self.name()
-    self.dot.node(name, f'UnaryExpr \noperand: {ue.operand}')
-    self.dot.edge(name,self.visit(ue.expr), label = 'expr')
+    self.dot.node(name, label = f'New {ns.class_type}')
+    for arg in ns.args:
+      arg_name = arg.accept(self)
+      self.dot.edge(name, arg_name)
     return name
   
-  def visit (self, ge: GroupingExpr):
+  def visit(self, ss : SizeStmt):
     name = self.name()
-    self.dot.node(name, 'GroupingExpr')
-    self.dot.edge(name,self.visit(ge.expr), label = 'expr')
+    self.dot.node(name, label = f'Size {ss.ident}')
+    return name
+  
+  def vist (self, ts : ThisStmt):
+    name = self.name()
+    self.dot.node(name, label = 'This')
+    return name
+  
+  def visit(self, ss : SuperStmt):
+    name = self.name()
+    self.dot.node(name, label = 'Super')
+    for arg in ss.args_list:
+      arg_name = arg.accept(self)
+      self.dot.edge(name, arg_name)
+    return name
+  
+  def visit(self, ps : PrivateStmt):
+    name = self.name()
+    self.dot.node(name, label = 'Private')
+    return name
+  
+  def visit(self, ps : PublicStmt):
+    name = self.name()
+    self.dot.node(name, label = 'Public')
+    return name
+  
+  def visit(self, ce : CallExpr):
+    name = self.name()
+    self.dot.node(name, label = f'Call {ce.ident}')
+    for arg in ce.args:
+      arg_name = arg.accept(self)
+      self.dot.edge(name, arg_name)
+    return name
+  
+  def visit(self, ce : ConstExpr):
+    name = self.name()
+    self.dot.node(name, label = f'Const {ce.value}')
+    return name
+  
+  def visit(self, ve : VarExpr):
+    name = self.name()
+    self.dot.node(name, label = f'Var {ve.ident}')
+    return name
+  
+  def visit(self, ale : ArrayLookupExpr):
+    name = self.name()
+    self.dot.node(name, label = 'Array Lookup')
+    ident_name = ale.ident.accept(self)
+    index_name = ale.index.accept(self)
+    self.dot.edge(name, ident_name)
+    self.dot.edge(name, index_name)
+    return name
+  
+  def visit(self, vae : VarAssignExpr):
+    name = self.name()
+    self.dot.node(name, label = f'{vae.ident} =')
+    expr_name = vae.expr.accept(self)
+    self.dot.edge(name, expr_name)
+    return name
+  
+  def visit(self, aae : ArrayAssignExpr):
+    name = self.name()
+    self.dot.node(name, label = f'{aae.ident}[{aae.index.accept(self)}] =')
+    expr_name = aae.expr.accept(self)
+    self.dot.edge(name, expr_name)
+    return name
+  
+  def visit(self, ase : ArraySizeExpr):
+    name = self.name()
+    self.dot.node(name, label = f'Size {ase.ident}')
+    return name
+  
+  def visit(self, itfe : IntToFloatExpr):
+    name = self.name()
+    self.dot.node(name, label = 'Int to Float')
+    expr_name = itfe.expr.accept(self)
+    self.dot.edge(name, expr_name)
+    return name
+  
+  def visit(self, be : BinaryExpr):
+    name = self.name()
+    self.dot.node(name, label = f'{be.operand}')
+    left_name = be.left.accept(self)
+    right_name = be.right.accept(self)
+    self.dot.edge(name, left_name)
+    self.dot.edge(name, right_name)
+    return name
+  
+  def visit(self, ue : UnaryExpr):
+    name = self.name()
+    self.dot.node(name, label = f'{ue.operand}')
+    expr_name = ue.expr.accept(self)
+    self.dot.edge(name, expr_name)
+    return name
+  
+  def visit(self, ge : GroupingExpr):
+    name = self.name()
+    self.dot.node(name, label = 'Grouping')
+    expr_name = ge.expr.accept(self)
+    self.dot.edge(name, expr_name)
     return name
   
   def generate_dot(self):
-    self.dot.render('ast', view=True) 
+    self.dot.save('ast.dot')
+    self.dot.render('ast',format='png', cleanup=False)
+  

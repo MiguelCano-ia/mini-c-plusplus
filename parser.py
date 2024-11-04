@@ -11,6 +11,8 @@ class Parser(sly.Parser):
   tokens = Lexer.tokens
   
   precedence = (
+    ('nonassoc', IFX),
+    ('nonassoc', ELSE),
     ('left',INCREMENT,DECREMENT),
     ('left', '='),
     ('left', OR),
@@ -20,8 +22,7 @@ class Parser(sly.Parser):
     ('left', '+', '-'),
     ('left', '*', '/', '%'),
     ('right', 'NOT'),
-    ('right', UNARY,'!'),
-    ('right', 'IFX')
+    ('right', UNARY,'!')
   )
   
   # Debug para ver el proceso de parsing
@@ -46,7 +47,7 @@ class Parser(sly.Parser):
   
   @_("CLASS IDENT '{' compound_stmt '}'")
   def class_decl(self,p):
-    return ClassDecl(p.IDENT, p.class_body)
+    return ClassDecl(p.IDENT, p.compound_stmt)
   
   @_("type_spec IDENT '(' param_list ')' compound_stmt")
   def func_decl(self,p):
@@ -88,9 +89,13 @@ class Parser(sly.Parser):
   def stmt_list(self,p):
     return [p.stmt] + p.stmt_list
   
-  @_("expr_stmt", "compound_stmt", "if_stmt", "return_stmt", "while_stmt","break_stmt", "continue_stmt", "print_stmt", "new_stmt" ,"this_stmt", "private_stmt", "public_stmt", "super_stmt")
+  @_("expr_stmt", "compound_stmt", "if_stmt", "return_stmt", "while_stmt","break_stmt", "continue_stmt", "print_stmt", "new_stmt" ,"this_stmt", "private_stmt", "public_stmt", "super_stmt", "for_stmt")
   def stmt(self,p):
     return p[0]
+  
+  @_("FOR '(' expr ';' expr ';' expr ')' stmt")
+  def for_stmt(self,p):
+    return ForStmt(p.expr0, p.expr1, p.expr2, p.stmt)
   
   @_("SUPER '(' args_list ')' ';'")
   def super_stmt(self,p):
@@ -210,7 +215,7 @@ class Parser(sly.Parser):
      "expr '/' expr",
      "expr '%' expr")
   def expr(self,p):
-    return BinaryExpr(p[1], p.expr0, p.expr1)
+    return BinaryExpr(p.expr0,p[1], p.expr1)
   
   
   @_("'-' expr %prec UNARY",
@@ -238,6 +243,7 @@ class Parser(sly.Parser):
   def error(self,p):
     lineo = p.lineno if p else "EOF"
     value = p.value if p else "EOF"
-    print(f"[bold red]Error de sintaxis en linea {lineo} en el valor {value}[/bold red]")
+    error = p.type if p else "EOF"
+    print(f"[bold red]Error de sintaxis en linea {lineo} en el valor {value}[/bold red] {error}")
     
     

@@ -13,6 +13,7 @@ class Lexer(sly.Lexer):
         VOID, BOOL, INT, FLOAT, STRING , IF, ELSE, WHILE,
         RETURN, CONTINUE, SIZE, NEW, CLASS, PRINTF,
         THIS, SUPER, PRIVATE, PUBLIC, BREAK, TRUE, FALSE,
+        FOR,
 
         #Operators
         AND, OR, NOT,
@@ -86,6 +87,7 @@ class Lexer(sly.Lexer):
     IDENT['true'] = TRUE
     IDENT['false'] = FALSE
     IDENT['string'] = STRING
+    IDENT['for'] = FOR
 
     #Relational Operators
     EQ = r'=='
