@@ -110,11 +110,9 @@ class PrintStmt(Statement):
 class ContinueStmt(Statement):
   pass
 
-  
 @dataclass
 class SizeStmt(Statement):
   ident : str
-
 
 @dataclass
 class ThisStmt(Statement):
