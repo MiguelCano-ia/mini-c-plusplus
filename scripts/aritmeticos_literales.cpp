@@ -3,7 +3,7 @@ int main() {
     float y = 3.14 * 2.0;
     int z = x % 2;
 
-    ++x; //Comentario incremento
+    x++; //Comentario incremento
     ++y;
     return 0;
 }

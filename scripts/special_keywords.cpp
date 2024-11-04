@@ -14,8 +14,6 @@ public:
 };
 
 int main() {
-    Derived* obj = new Derived(); 
-    obj->display();
-    delete obj; 
+    Derived obj = new Derived(); 
     return 0;
 }
