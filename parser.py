@@ -21,10 +21,10 @@ class Parser(sly.Parser):
     ('left', '*', '/', '%'),
     ('right', 'NOT'),
     ('right', UNARY,'!'),
-    ('right', 'IFX')
+    ('right', 'IFX'),
+    ('left', 'ELSE')
   )
   
-  # Debug para ver el proceso de parsing
   def __init__(self):
     self.debugging = True
   
@@ -40,13 +40,41 @@ class Parser(sly.Parser):
   def decl_list(self,p):
     return [p.decl]
 
-  @_("var_decl", "func_decl", "class_decl")
+  @_("var_decl", "func_decl", "class_decl", "var_decl_instance")
   def decl(self,p):
     return p[0]
   
-  @_("CLASS IDENT '{' compound_stmt '}'")
+  @_("CLASS IDENT '{' class_body '}' ';'")
   def class_decl(self,p):
-    return ClassDecl(p.IDENT, p.class_body)
+    return ClassDecl(p.IDENT, None, p.class_body)
+  
+  @_("access_specifier class_body")
+  def class_body(self,p):
+    return p.class_body
+    
+  @_("class_member class_body")
+  def class_body(self,p):
+    return [p.class_member] + p.class_body
+    
+  @_("")
+  def class_body(self,p):
+    return []
+    
+  @_("PRIVATE ':' ", "PUBLIC ':'")
+  def access_specifier(self,p):
+    return p[0]
+    
+  @_("var_decl", "method_decl", "constructor_decl")
+  def class_member(self,p):
+    return p[0]
+    
+  @_("type_spec IDENT '(' param_list ')' compound_stmt")
+  def method_decl(self,p):
+    return FuncDecl(p.type_spec, p.IDENT, p.param_list, p.compound_stmt)
+  
+  @_("IDENT '(' param_list ')' compound_stmt")
+  def constructor_decl(self, p):
+    return FuncDecl(None, p.IDENT, p.param_list, p.compound_stmt)
   
   @_("type_spec IDENT '(' param_list ')' compound_stmt")
   def func_decl(self,p):
@@ -59,6 +87,10 @@ class Parser(sly.Parser):
   @_("param_list ',' param")
   def param_list(self,p):
     return p.param_list + [p.param]
+  
+  @_("param")
+  def param_list(self,p):
+    return [p.param]
   
   @_("type_spec IDENT")
   def param(self,p):
@@ -88,7 +120,8 @@ class Parser(sly.Parser):
   def stmt_list(self,p):
     return [p.stmt] + p.stmt_list
   
-  @_("expr_stmt", "compound_stmt", "if_stmt", "return_stmt", "while_stmt","break_stmt", "continue_stmt", "print_stmt", "new_stmt" ,"this_stmt", "private_stmt", "public_stmt", "super_stmt")
+  @_("expr_stmt", "compound_stmt", "if_stmt", "return_stmt", "while_stmt","break_stmt", 
+     "continue_stmt", "print_stmt", "new_stmt" ,"this_stmt", "private_stmt", "public_stmt", "super_stmt", "var_decl_instance")
   def stmt(self,p):
     return p[0]
   
@@ -138,11 +171,15 @@ class Parser(sly.Parser):
   
   @_("IDENT '=' NEW IDENT '(' args_list ')' ';'" )
   def new_stmt(self,p):
-    return NewStmt(ident=p.IDENT, class_type=p.IDENT0, args=p.args_list)
+    return NewStmt(ident=p.IDENT0, class_type=p.IDENT1, args=p.args_list)
   
   @_("empty")
   def args_list(self,p):
-    return p[0]
+    return []
+  
+  @_("expr")
+  def args_list(self,p):
+    return [p.expr]
   
   @_("args_list ',' expr")
   def args_list(self,p):
@@ -167,6 +204,10 @@ class Parser(sly.Parser):
   @_("type_spec IDENT '[' INTLIT ']' ';' ")
   def var_decl(self,p):
     return ArrayDecl(p.type_spec,p.IDENT, p.INTLIT)
+  
+  @_("IDENT IDENT ';'")
+  def var_decl_instance(self, p):
+    return InstanceDecl(class_type=p.IDENT0, instance_name=p.IDENT1)
   
   @_("VOID", "INT", "FLOAT", "BOOL", "STRING")
   def type_spec(self,p):
@@ -195,6 +236,10 @@ class Parser(sly.Parser):
   @_("IDENT")
   def expr(self,p):
     return VarExpr(p.IDENT)
+  
+  @_("IDENT '.' IDENT '(' args_list ')'")
+  def expr(self,p):
+    return CallExpr(p.IDENT1, p.args_list)
 
   @_("expr OR expr",
      "expr AND expr",
@@ -212,7 +257,6 @@ class Parser(sly.Parser):
   def expr(self,p):
     return BinaryExpr(p[1], p.expr0, p.expr1)
   
-  
   @_("'-' expr %prec UNARY",
      "'!' expr %prec UNARY",
      "'+' expr %prec UNARY",
@@ -229,7 +273,6 @@ class Parser(sly.Parser):
   @_("IDENT '.' SIZE")
   def expr(self,p):
     return ArraySizeExpr(p.IDENT)
-  
    
   @_("")
   def empty(self, token):
@@ -239,5 +282,3 @@ class Parser(sly.Parser):
     lineo = p.lineno if p else "EOF"
     value = p.value if p else "EOF"
     print(f"[bold red]Error de sintaxis en linea {lineo} en el valor {value}[/bold red]")
-    
-    

@@ -56,6 +56,12 @@ class ArrayDecl(Declaration):
   var_type : str
   ident : str
   size : Expression
+  
+@dataclass
+class InstanceDecl(Declaration):
+  class_type: str
+  instance_name: str
+
 '''
 Acciones sin valores asociados
 '''
@@ -70,7 +76,6 @@ class ExprStmt(Statement):
 @dataclass
 class NullStmt (Statement):
   pass
-
   
 @dataclass
 class IfStmt(Statement):
@@ -139,7 +144,6 @@ class CallExpr(Expression):
   args : List[Expression] = field(default_factory = list)
   
 
-
 @dataclass
 class ConstExpr(Expression):
   value : Union[int, float, bool, str]
@@ -187,8 +191,6 @@ class UnaryExpr(Expression):
 class GroupingExpr(Expression):
   expr: Expression
   
-
-
 @dataclass
 class MakeDot(Visitor):
   
