@@ -1,8 +1,7 @@
 int main() {
-    int numeros[5-1];
-    float valores[3];
-
-    numeros[2-4] = 1;
-
+    int arr[5];
+    arr[0] = 10;
+    arr[1] = arr[0] + 20;
+    int x = arr[1];
     return 0;
 }

@@ -1,7 +1,7 @@
 from __future__ import annotations
 from dataclasses import dataclass,field
 from multimethod import multimeta
-from typing import List, Union
+from typing import List, Optional, Union
 
 from graphviz import Digraph
 from lexer import Lexer
@@ -98,10 +98,12 @@ class WhileStmt(Statement):
   
 @dataclass
 class ForStmt(Statement):
-  var_increment : VarDecl
-  cond : Expression
-  increment : Expression
-  body : List[Statement] = field(default_factory = list)
+  initialization: Optional[Statement]  # Puede ser VarDecl o ExprStmt
+  condition: Optional[Expression]
+  increment: Optional[Expression]
+  body: Statement
+
+  
 @dataclass
 class PrintStmt(Statement):
   expr : Expression
@@ -130,7 +132,6 @@ class PrivateStmt(Statement):
 class PublicStmt(Statement):
   pass
 
-
 '''
 Expresiones con valores asociados
 '''
@@ -140,7 +141,6 @@ class CallExpr(Expression):
   ident : str
   object_name : str = None
   args : List[Expression] = field(default_factory = list)
-  
 
 @dataclass
 class ConstExpr(Expression):
@@ -247,9 +247,7 @@ class MakeDot(Visitor):
       stmt_name = stmt.accept(self)
       self.dot.edge(body_name, stmt_name)
     
-      
     return name
-    
       
   def visit(self, vd : VarDecl):
     name = self.name()
@@ -337,7 +335,6 @@ class MakeDot(Visitor):
     self.dot.node(name, label = 'Break')
     return name
   
-  
   def visit(self, ws : WhileStmt):
     name = self.name()
     self.dot.node(name, label = 'While')
@@ -348,19 +345,27 @@ class MakeDot(Visitor):
       self.dot.edge(name, stmt_name)
     return name
   
-  def visit(self, fs : ForStmt):
+  def visit(self, fs: ForStmt):
     name = self.name()
-    self.dot.node(name, label = 'For')
-    var_name = fs.var_increment.accept(self)
-    self.dot.edge(name, var_name)
-    cond_name = fs.cond.accept(self)
-    self.dot.edge(name, cond_name)
-    inc_name = fs.increment.accept(self)
-    self.dot.edge(name, inc_name)
-    for stmt in fs.body:
-      stmt_name = stmt.accept(self)
-      self.dot.edge(name, stmt_name)
+    self.dot.node(name, label='For')
+
+    if fs.initialization:
+        init_name = fs.initialization.accept(self)
+        self.dot.edge(name, init_name, label='Init')
+
+    if fs.condition:
+        cond_name = fs.condition.accept(self)
+        self.dot.edge(name, cond_name, label='Cond')
+
+    if fs.increment:
+        incr_name = fs.increment.accept(self)
+        self.dot.edge(name, incr_name, label='Incr')
+
+    body_name = fs.body.accept(self)
+    self.dot.edge(name, body_name, label='Body')
+
     return name
+
   
   def visit(self, ps : PrintStmt):
     name = self.name()

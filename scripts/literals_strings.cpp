@@ -1,3 +1,4 @@
+#include <string>
 int main() {
     float num = 10.5;
     string hello = "Hello, World!";

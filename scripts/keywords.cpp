@@ -1,4 +1,4 @@
-void main() {
+int main() {
     int a = 10;
     float b = 20.5;
     bool c = false;
@@ -9,5 +9,5 @@ void main() {
         c = false;
     }
 
-    return;
+    return 0;
 }

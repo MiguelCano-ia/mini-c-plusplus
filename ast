@@ -5,38 +5,6 @@ digraph ast {
 int main"]
 	n1 -> n3
 	n3 [label=Body]
-<<<<<<< HEAD
-	n4 [label="int a ="]
-	n5 [label="Const 5"]
-	n4 -> n5
-	n3 -> n4
-	n6 [label="int c"]
-	n3 -> n6
-	n7 [label=While]
-	n8 [label="<"]
-	n9 [label="Var a"]
-	n10 [label="Const 10"]
-	n8 -> n9
-	n8 -> n10
-	n7 -> n8
-	n11 [label=Expression]
-	n12 [label="a ="]
-	n13 [label="+"]
-	n14 [label="Var a"]
-	n15 [label="Const 1"]
-	n13 -> n14
-	n13 -> n15
-	n12 -> n13
-	n11 -> n12
-	n7 -> n11
-	n16 [label=Expression]
-	n17 [label="++"]
-	n18 [label="Var c"]
-	n17 -> n18
-	n16 -> n17
-	n7 -> n16
-	n3 -> n7
-=======
 	n4 [label="bool a ="]
 	n5 [label="Const True"]
 	n4 -> n5
@@ -85,5 +53,4 @@ int main"]
 	n26 -> n27
 	n25 -> n26
 	n3 -> n25
->>>>>>> 0f8ed9040c8aaa151e66363fa71577623574ec48
 }
