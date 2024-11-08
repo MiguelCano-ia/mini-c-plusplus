@@ -108,6 +108,13 @@ class SemanticAnalyzer(Visitor):
                 self.errors.append("Error: La función 'main' debe tener tipo de retorno 'int'.")
             if len(main_func.params) != 0:
                 self.errors.append("Error: La función 'main' no debe tener parámetros.")
+                
+    def is_cast_valid(self, from_type: str, to_type: str) -> bool:
+        valid_casts = {
+            'int': ['float'],
+            'float': ['int'],
+        }
+        return to_type in valid_casts.get(from_type, []) or from_type == to_type
 
     # Implementación de los métodos visit_ para cada nodo del AST
 
@@ -426,6 +433,33 @@ class SemanticAnalyzer(Visitor):
             self.errors.append(f"Error: '{node.ident}' no es un arreglo.")
             return None
         return 'int'
+    
+    def visit_CompoundAssignExpr(self, node: CompoundAssignExpr):
+        var_name = node.ident
+        operator = node.operator
+        expr = node.expr
+
+        var_type = self.lookup(var_name)
+        if var_type is None:
+            self.errors.append(f"Error: Variable '{var_name}' no declarada.")
+            return None
+
+        expr_type = self.visit(expr)
+
+        bin_operator = operator[0] 
+        binary_expr = BinaryExpr(left=VarExpr(var_name), operand=bin_operator, right=expr)
+
+        result_type = self.visit(binary_expr)
+
+        if result_type is None:
+            self.errors.append(f"Error: Operación '{operator}' no soportada entre '{var_type}' y '{expr_type}'.")
+            return None
+
+        if not self.check_assignment_compatibility(var_type, result_type):
+            self.errors.append(f"Error: No se puede asignar un valor de tipo '{result_type}' a la variable '{var_name}' de tipo '{var_type}'.")
+            return None
+
+        return var_type
 
     def visit_BinaryExpr(self, node: BinaryExpr):
         left_type = self.visit(node.left)
@@ -441,6 +475,16 @@ class SemanticAnalyzer(Visitor):
         if result_type is None:
             self.errors.append(f"Error: Operación unaria '{node.operand}' no soportada para tipo '{expr_type}'.")
         return result_type
+    
+    def visit_CastExpr(self, node: CastExpr):
+        expr_type = self.visit(node.expr)
+
+        target_type = node.target_type
+
+        if not self.is_cast_valid(expr_type, target_type):
+            self.errors.append(f"No se puede convertir de {expr_type} a {target_type}")
+
+        return target_type
 
     def visit_GroupingExpr(self, node: GroupingExpr):
         return self.visit(node.expr)

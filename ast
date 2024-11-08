@@ -5,52 +5,38 @@ digraph ast {
 int main"]
 	n1 -> n3
 	n3 [label=Body]
-	n4 [label="bool a ="]
-	n5 [label="Const True"]
+	n4 [label="int x ="]
+	n5 [label="Const 10"]
 	n4 -> n5
 	n3 -> n4
-	n6 [label="bool b ="]
-	n7 [label="Const False"]
+	n6 [label=Expression]
+	n7 [label="x ="]
+	n8 [label="Const 80"]
+	n7 -> n8
 	n6 -> n7
 	n3 -> n6
-	n8 [label=If]
-	n9 [label=Cond]
-	n10 [label="&&"]
-	n11 [label="Var a"]
-	n12 [label="Var b"]
-	n10 -> n11
-	n10 -> n12
+	n9 [label=Expression]
+	n10 [label="x +="]
+	n11 [label="Const 5"]
+	n10 -> n11 [label=Expr]
 	n9 -> n10
-	n8 -> n9
-	n13 [label=Then]
-	n14 [label=Return]
-	n15 [label="Const 1"]
-	n14 -> n15
-	n13 -> n14
-	n8 -> n13
-	n16 [label=Else]
-	n17 [label=If]
-	n18 [label=Cond]
-	n19 [label="||"]
-	n20 [label="Var a"]
-	n21 [label="Var b"]
-	n19 -> n20
-	n19 -> n21
+	n3 -> n9
+	n12 [label=Expression]
+	n13 [label="x -="]
+	n14 [label="Const 1"]
+	n13 -> n14 [label=Expr]
+	n12 -> n13
+	n3 -> n12
+	n15 [label=Expression]
+	n16 [label="x *="]
+	n17 [label="Const 3"]
+	n16 -> n17 [label=Expr]
+	n15 -> n16
+	n3 -> n15
+	n18 [label=Expression]
+	n19 [label="x /="]
+	n20 [label="Const 2"]
+	n19 -> n20 [label=Expr]
 	n18 -> n19
-	n17 -> n18
-	n22 [label=Then]
-	n23 [label=Return]
-	n24 [label="Const 0"]
-	n23 -> n24
-	n22 -> n23
-	n17 -> n22
-	n16 -> n17
-	n8 -> n16
-	n3 -> n8
-	n25 [label=Return]
-	n26 [label="-"]
-	n27 [label="Const 1"]
-	n26 -> n27
-	n25 -> n26
-	n3 -> n25
+	n3 -> n18
 }

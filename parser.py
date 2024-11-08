@@ -11,13 +11,12 @@ class Parser(sly.Parser):
     # Importamos los tokens desde el lexer
     tokens = Lexer.tokens
 
-    # Definimos la precedencia de operadores. Dado que hemos reestructurado
-    # las reglas de expresiones para manejar la precedencia de manera explícita,
-    # solo necesitamos especificar la precedencia de los operadores unarios.
     precedence = (
+      ('right', 'CAST'),
       ('nonassoc', IFX),
       ('nonassoc', ELSE),
       ('right', UNARY, '!'),
+      ('left', 'PLUS_ASSIGN', 'MINUS_ASSIGN', 'MULT_ASSIGN', 'DIV_ASSIGN'),
     ) 
 
     def __init__(self):
@@ -196,9 +195,16 @@ class Parser(sly.Parser):
         return ExprStmt(p.assignment_expr)
 
     # Expresiones de asignación
-    @_("IDENT '=' assignment_expr")
+    @_("IDENT '=' assignment_expr",
+       "IDENT PLUS_ASSIGN assignment_expr",
+       "IDENT MINUS_ASSIGN assignment_expr",
+       "IDENT MULT_ASSIGN assignment_expr",
+       "IDENT DIV_ASSIGN assignment_expr")
     def assignment_expr(self, p):
-        return VarAssignExpr(p.IDENT, p.assignment_expr)
+        if p[1] == '=':
+            return VarAssignExpr(p.IDENT, p.assignment_expr)
+        else:
+            return CompoundAssignExpr(ident=p.IDENT, operator=p[1], expr=p.assignment_expr)
 
     @_("expr")
     def assignment_expr(self, p):
@@ -375,6 +381,10 @@ class Parser(sly.Parser):
     @_("primary_expr")
     def unary_expr(self, p):
         return p.primary_expr
+    
+    @_("'(' type_spec ')' unary_expr %prec CAST")
+    def unary_expr(self, p):
+        return CastExpr(p.type_spec, p.unary_expr)
 
     # Expresiones primarias
     @_("'(' expr ')'")

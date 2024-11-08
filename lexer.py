@@ -19,6 +19,8 @@ class Lexer(sly.Lexer):
         AND, OR, NOT,
         EQ, NE, GE, GT, LE, LT,
         INCREMENT, DECREMENT,
+        PLUS_ASSIGN, MINUS_ASSIGN,
+        MULT_ASSIGN, DIV_ASSIGN,
 
         #Literals
         INTLIT, FLOATLIT, BOOLIT, STRINGLIT, IDENT,
@@ -101,6 +103,11 @@ class Lexer(sly.Lexer):
     NOT = r'!'
     INCREMENT = r'\+\+'
     DECREMENT = r'\-\-'
+    PLUS_ASSIGN = r'\+='
+    MINUS_ASSIGN = r'\-='
+    MULT_ASSIGN = r'\*='
+    DIV_ASSIGN = r'/='
+    
 
     def error(self, t):
         print(f'Error: Illegal character {t.value[0]}')
