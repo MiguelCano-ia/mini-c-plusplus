@@ -508,6 +508,24 @@ class SemanticAnalyzer(Visitor):
             self.errors.append(f"Error: El operador '--' no puede aplicarse a variables de tipo '{var_type}'.")
             return None
         return var_type
+    
+    def visit_ShortCircuitAndExpr(self, node: ShortCircuitAndExpr):
+        left_type = self.visit(node.left)
+        if left_type != 'bool':
+            self.errors.append(f"Error: La expresión izquierda de '&&' debe ser de tipo 'bool', se obtuvo '{left_type}'.")
+        right_type = self.visit(node.right)
+        if right_type != 'bool':
+            self.errors.append(f"Error: La expresión derecha de '&&' debe ser de tipo 'bool', se obtuvo '{right_type}'.")
+        return 'bool'
+
+    def visit_ShortCircuitOrExpr(self, node: ShortCircuitOrExpr):
+        left_type = self.visit(node.left)
+        if left_type != 'bool':
+            self.errors.append(f"Error: La expresión izquierda de '||' debe ser de tipo 'bool', se obtuvo '{left_type}'.")
+        right_type = self.visit(node.right)
+        if right_type != 'bool':
+            self.errors.append(f"Error: La expresión derecha de '||' debe ser de tipo 'bool', se obtuvo '{right_type}'.")
+        return 'bool'
 
     def visit_UnaryExpr(self, node: UnaryExpr):
         expr_type = self.visit(node.expr)

@@ -216,6 +216,16 @@ class PostfixIncExpr(Expression):
 class PostfixDecExpr(Expression):
   expr: Expression
   
+@dataclass 
+class ShortCircuitAndExpr(Expression):
+  left: Expression
+  right: Expression
+  
+@dataclass
+class ShortCircuitOrExpr(Expression):
+  left: Expression
+  right: Expression
+
 @dataclass
 class MakeDot(Visitor):
   node_default = {
@@ -538,6 +548,24 @@ class MakeDot(Visitor):
     self.dot.node(name, label='PostfixDec--')
     expr_name = node.expr.accept(self)
     self.dot.edge(name, expr_name, label='expr')
+    return name
+  
+  def visit(self, node: ShortCircuitAndExpr):
+    name = self.name()
+    self.dot.node(name, label='ShortCircuitAnd')
+    left_name = node.left.accept(self)
+    right_name = node.right.accept(self)
+    self.dot.edge(name, left_name, label='left')
+    self.dot.edge(name, right_name, label='right')
+    return name
+  
+  def visit(self, node: ShortCircuitOrExpr):
+    name = self.name()
+    self.dot.node(name, label='ShortCircuitOr')
+    left_name = node.left.accept(self)
+    right_name = node.right.accept(self)
+    self.dot.edge(name, left_name, label='left')
+    self.dot.edge(name, right_name, label='right')
     return name
   
   def visit(self, ue : UnaryExpr):

@@ -7,6 +7,13 @@ int main() {
     } else if (a || b) {
       return 0;
     }
+}
 
-    return -1;
+bool equalator() {
+  int a = 5;
+    int b = 10;
+    if (a == 5 || (b / a) > 2) {
+        // Código
+    }
+    return true;
 }

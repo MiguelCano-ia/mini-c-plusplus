@@ -311,7 +311,7 @@ class Parser(sly.Parser):
     # Operadores lógicos 'OR'
     @_("logical_or_expr OR logical_and_expr")
     def logical_or_expr(self, p):
-        return BinaryExpr(p.logical_or_expr, p.OR, p.logical_and_expr)
+        return ShortCircuitOrExpr(p.logical_or_expr, p.logical_and_expr)
 
     @_("logical_and_expr")
     def logical_or_expr(self, p):
@@ -320,7 +320,7 @@ class Parser(sly.Parser):
     # Operadores lógicos 'AND'
     @_("logical_and_expr AND equality_expr")
     def logical_and_expr(self, p):
-        return BinaryExpr(p.logical_and_expr, p.AND, p.equality_expr)
+        return ShortCircuitAndExpr(p.logical_and_expr, p.equality_expr)
 
     @_("equality_expr")
     def logical_and_expr(self, p):
