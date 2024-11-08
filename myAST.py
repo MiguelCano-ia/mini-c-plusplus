@@ -201,6 +201,22 @@ class GroupingExpr(Expression):
   expr: Expression
   
 @dataclass
+class PrefixIncExpr(Expression):
+  expr: Expression
+  
+@dataclass
+class PrefixDecExpr(Expression):
+  expr: Expression 
+  
+@dataclass
+class PostfixIncExpr(Expression):
+  expr: Expression
+  
+@dataclass
+class PostfixDecExpr(Expression):
+  expr: Expression
+  
+@dataclass
 class MakeDot(Visitor):
   node_default = {
     'shape' : 'box',
@@ -493,6 +509,35 @@ class MakeDot(Visitor):
     right_name = be.right.accept(self)
     self.dot.edge(name, left_name)
     self.dot.edge(name, right_name)
+    return name
+  
+  def visit(self, node: PrefixIncExpr):
+    name = self.name()
+    self.dot.node(name, label='PrefixInc++')
+    expr_name = node.expr.accept(self)
+    self.dot.edge(name, expr_name, label='expr')
+    return name
+
+ 
+  def visit(self, node: PrefixDecExpr):
+    name = self.name()
+    self.dot.node(name, label='PrefixDec--')
+    expr_name = node.expr.accept(self)
+    self.dot.edge(name, expr_name, label='expr')
+    return name
+
+  def visit(self, node: PostfixIncExpr):
+    name = self.name()
+    self.dot.node(name, label='PostfixInc++')
+    expr_name = node.expr.accept(self)
+    self.dot.edge(name, expr_name, label='expr')
+    return name
+      
+  def visit(self, node: PostfixDecExpr):
+    name = self.name()
+    self.dot.node(name, label='PostfixDec--')
+    expr_name = node.expr.accept(self)
+    self.dot.edge(name, expr_name, label='expr')
     return name
   
   def visit(self, ue : UnaryExpr):

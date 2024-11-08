@@ -4,7 +4,7 @@ int main() {
     int z = x % 2;
 
     x++; //Comentario incremento
-    y--; //Comentario decremento
+    --y; //Comentario decremento
     return 0;
 }
 
