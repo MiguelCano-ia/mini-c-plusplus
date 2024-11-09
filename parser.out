@@ -43,7 +43,7 @@ Rule 39    stmt -> return_stmt
 Rule 40    stmt -> if_stmt
 Rule 41    stmt -> compound_stmt
 Rule 42    stmt -> expr_stmt
-Rule 43    for_stmt -> FOR ( for_init ; for_cond ; for_incr ) stmt
+Rule 43    for_stmt -> FOR ( for_init ; for_cond ; for_incr ) compound_stmt
 Rule 44    for_init -> empty
 Rule 45    for_init -> assignment_expr
 Rule 46    for_init -> var_decl_no_semi
@@ -204,7 +204,7 @@ break_stmt           : 37
 class_body           : 8 10 11
 class_decl           : 5
 class_member         : 10
-compound_stmt        : 17 18 19 41
+compound_stmt        : 17 18 19 41 43
 constructor_decl     : 14
 continue_stmt        : 36
 decl                 : 2 3
@@ -235,7 +235,7 @@ program              : 0
 public_stmt          : 33
 relational_expr      : 91 92 93 95 96 97 98
 return_stmt          : 39
-stmt                 : 28 43 62 62 63 64 65 68
+stmt                 : 28 62 62 63 64 65 68
 stmt_list            : 25 28
 super_stmt           : 32
 this_stmt            : 
@@ -4082,7 +4082,7 @@ state 152
     (41) stmt -> . compound_stmt
     (42) stmt -> . expr_stmt
     (129) empty -> .
-    (43) for_stmt -> . FOR ( for_init ; for_cond ; for_incr ) stmt
+    (43) for_stmt -> . FOR ( for_init ; for_cond ; for_incr ) compound_stmt
     (79) object_decl -> . IDENT IDENT = NEW IDENT ( args_list ) ;
     (80) object_decl -> . IDENT IDENT ;
     (54) super_stmt -> . SUPER ( args_list ) ;
@@ -4574,7 +4574,7 @@ state 166
     (41) stmt -> . compound_stmt
     (42) stmt -> . expr_stmt
     (129) empty -> .
-    (43) for_stmt -> . FOR ( for_init ; for_cond ; for_incr ) stmt
+    (43) for_stmt -> . FOR ( for_init ; for_cond ; for_incr ) compound_stmt
     (79) object_decl -> . IDENT IDENT = NEW IDENT ( args_list ) ;
     (80) object_decl -> . IDENT IDENT ;
     (54) super_stmt -> . SUPER ( args_list ) ;
@@ -5118,7 +5118,7 @@ state 180
 
 state 181
 
-    (43) for_stmt -> FOR . ( for_init ; for_cond ; for_incr ) stmt
+    (43) for_stmt -> FOR . ( for_init ; for_cond ; for_incr ) compound_stmt
     (               shift and go to state 201
 
 
@@ -5448,7 +5448,7 @@ state 200
 
 state 201
 
-    (43) for_stmt -> FOR ( . for_init ; for_cond ; for_incr ) stmt
+    (43) for_stmt -> FOR ( . for_init ; for_cond ; for_incr ) compound_stmt
     (44) for_init -> . empty
     (45) for_init -> . assignment_expr
     (46) for_init -> . var_decl_no_semi
@@ -5643,7 +5643,7 @@ state 203
     (40) stmt -> . if_stmt
     (41) stmt -> . compound_stmt
     (42) stmt -> . expr_stmt
-    (43) for_stmt -> . FOR ( for_init ; for_cond ; for_incr ) stmt
+    (43) for_stmt -> . FOR ( for_init ; for_cond ; for_incr ) compound_stmt
     (79) object_decl -> . IDENT IDENT = NEW IDENT ( args_list ) ;
     (80) object_decl -> . IDENT IDENT ;
     (54) super_stmt -> . SUPER ( args_list ) ;
@@ -5776,7 +5776,7 @@ state 204
     (40) stmt -> . if_stmt
     (41) stmt -> . compound_stmt
     (42) stmt -> . expr_stmt
-    (43) for_stmt -> . FOR ( for_init ; for_cond ; for_incr ) stmt
+    (43) for_stmt -> . FOR ( for_init ; for_cond ; for_incr ) compound_stmt
     (79) object_decl -> . IDENT IDENT = NEW IDENT ( args_list ) ;
     (80) object_decl -> . IDENT IDENT ;
     (54) super_stmt -> . SUPER ( args_list ) ;
@@ -6270,7 +6270,7 @@ state 213
 
 state 214
 
-    (43) for_stmt -> FOR ( for_init . ; for_cond ; for_incr ) stmt
+    (43) for_stmt -> FOR ( for_init . ; for_cond ; for_incr ) compound_stmt
     ;               shift and go to state 226
 
 
@@ -6425,7 +6425,7 @@ state 225
 
 state 226
 
-    (43) for_stmt -> FOR ( for_init ; . for_cond ; for_incr ) stmt
+    (43) for_stmt -> FOR ( for_init ; . for_cond ; for_incr ) compound_stmt
     (50) for_cond -> . empty
     (51) for_cond -> . expr
     (129) empty -> .
@@ -6539,7 +6539,7 @@ state 230
     (40) stmt -> . if_stmt
     (41) stmt -> . compound_stmt
     (42) stmt -> . expr_stmt
-    (43) for_stmt -> . FOR ( for_init ; for_cond ; for_incr ) stmt
+    (43) for_stmt -> . FOR ( for_init ; for_cond ; for_incr ) compound_stmt
     (79) object_decl -> . IDENT IDENT = NEW IDENT ( args_list ) ;
     (80) object_decl -> . IDENT IDENT ;
     (54) super_stmt -> . SUPER ( args_list ) ;
@@ -6673,7 +6673,7 @@ state 231
     (40) stmt -> . if_stmt
     (41) stmt -> . compound_stmt
     (42) stmt -> . expr_stmt
-    (43) for_stmt -> . FOR ( for_init ; for_cond ; for_incr ) stmt
+    (43) for_stmt -> . FOR ( for_init ; for_cond ; for_incr ) compound_stmt
     (79) object_decl -> . IDENT IDENT = NEW IDENT ( args_list ) ;
     (80) object_decl -> . IDENT IDENT ;
     (54) super_stmt -> . SUPER ( args_list ) ;
@@ -6792,7 +6792,7 @@ state 231
 
 state 232
 
-    (43) for_stmt -> FOR ( for_init ; for_cond . ; for_incr ) stmt
+    (43) for_stmt -> FOR ( for_init ; for_cond . ; for_incr ) compound_stmt
     ;               shift and go to state 241
 
 
@@ -7090,7 +7090,7 @@ state 240
 
 state 241
 
-    (43) for_stmt -> FOR ( for_init ; for_cond ; . for_incr ) stmt
+    (43) for_stmt -> FOR ( for_init ; for_cond ; . for_incr ) compound_stmt
     (52) for_incr -> . empty
     (53) for_incr -> . assignment_expr
     (129) empty -> .
@@ -7201,7 +7201,7 @@ state 244
     (40) stmt -> . if_stmt
     (41) stmt -> . compound_stmt
     (42) stmt -> . expr_stmt
-    (43) for_stmt -> . FOR ( for_init ; for_cond ; for_incr ) stmt
+    (43) for_stmt -> . FOR ( for_init ; for_cond ; for_incr ) compound_stmt
     (79) object_decl -> . IDENT IDENT = NEW IDENT ( args_list ) ;
     (80) object_decl -> . IDENT IDENT ;
     (54) super_stmt -> . SUPER ( args_list ) ;
@@ -7320,7 +7320,7 @@ state 244
 
 state 245
 
-    (43) for_stmt -> FOR ( for_init ; for_cond ; for_incr . ) stmt
+    (43) for_stmt -> FOR ( for_init ; for_cond ; for_incr . ) compound_stmt
     )               shift and go to state 250
 
 
@@ -7376,164 +7376,39 @@ state 249
 
 state 250
 
-    (43) for_stmt -> FOR ( for_init ; for_cond ; for_incr ) . stmt
-    (30) stmt -> . for_stmt
-    (31) stmt -> . object_decl
-    (32) stmt -> . super_stmt
-    (33) stmt -> . public_stmt
-    (34) stmt -> . private_stmt
-    (35) stmt -> . print_stmt
-    (36) stmt -> . continue_stmt
-    (37) stmt -> . break_stmt
-    (38) stmt -> . while_stmt
-    (39) stmt -> . return_stmt
-    (40) stmt -> . if_stmt
-    (41) stmt -> . compound_stmt
-    (42) stmt -> . expr_stmt
-    (43) for_stmt -> . FOR ( for_init ; for_cond ; for_incr ) stmt
-    (79) object_decl -> . IDENT IDENT = NEW IDENT ( args_list ) ;
-    (80) object_decl -> . IDENT IDENT ;
-    (54) super_stmt -> . SUPER ( args_list ) ;
-    (65) public_stmt -> . PUBLIC : stmt
-    (64) private_stmt -> . PRIVATE : stmt
-    (74) print_stmt -> . PRINTF ( expr ) ;
-    (70) continue_stmt -> . CONTINUE ;
-    (69) break_stmt -> . BREAK ;
-    (68) while_stmt -> . WHILE ( expr ) stmt
-    (66) return_stmt -> . RETURN expr ;
-    (67) return_stmt -> . RETURN ;
-    (62) if_stmt -> . IF ( expr ) stmt ELSE stmt
-    (63) if_stmt -> . IF ( expr ) stmt
+    (43) for_stmt -> FOR ( for_init ; for_cond ; for_incr ) . compound_stmt
     (25) compound_stmt -> . { local_decls stmt_list }
-    (55) expr_stmt -> . assignment_expr ;
-    (56) assignment_expr -> . expr
-    (57) assignment_expr -> . IDENT DIV_ASSIGN assignment_expr
-    (58) assignment_expr -> . IDENT MULT_ASSIGN assignment_expr
-    (59) assignment_expr -> . IDENT MINUS_ASSIGN assignment_expr
-    (60) assignment_expr -> . IDENT PLUS_ASSIGN assignment_expr
-    (61) assignment_expr -> . IDENT = assignment_expr
-    (86) expr -> . logical_or_expr
-    (87) logical_or_expr -> . logical_and_expr
-    (88) logical_or_expr -> . logical_or_expr OR logical_and_expr
-    (89) logical_and_expr -> . equality_expr
-    (90) logical_and_expr -> . logical_and_expr AND equality_expr
-    (91) equality_expr -> . relational_expr
-    (92) equality_expr -> . equality_expr NE relational_expr
-    (93) equality_expr -> . equality_expr EQ relational_expr
-    (94) relational_expr -> . additive_expr
-    (95) relational_expr -> . relational_expr GE additive_expr
-    (96) relational_expr -> . relational_expr GT additive_expr
-    (97) relational_expr -> . relational_expr LE additive_expr
-    (98) relational_expr -> . relational_expr LT additive_expr
-    (99) additive_expr -> . multiplicative_expr
-    (100) additive_expr -> . additive_expr - multiplicative_expr
-    (101) additive_expr -> . additive_expr + multiplicative_expr
-    (102) multiplicative_expr -> . unary_expr
-    (103) multiplicative_expr -> . multiplicative_expr % unary_expr
-    (104) multiplicative_expr -> . multiplicative_expr / unary_expr
-    (105) multiplicative_expr -> . multiplicative_expr * unary_expr
-    (106) unary_expr -> . ( type_spec ) unary_expr
-    (107) unary_expr -> . postfix_expr
-    (108) unary_expr -> . NOT unary_expr
-    (109) unary_expr -> . ! unary_expr
-    (110) unary_expr -> . - unary_expr
-    (111) unary_expr -> . + unary_expr
-    (112) unary_expr -> . DECREMENT unary_expr
-    (113) unary_expr -> . INCREMENT unary_expr
-    (114) postfix_expr -> . primary_expr
-    (115) postfix_expr -> . postfix_expr DECREMENT
-    (116) postfix_expr -> . postfix_expr INCREMENT
-    (117) primary_expr -> . IDENT . SIZE
-    (118) primary_expr -> . IDENT
-    (119) primary_expr -> . IDENT [ expr ]
-    (120) primary_expr -> . IDENT . IDENT ( args_list )
-    (121) primary_expr -> . IDENT ( args_list )
-    (122) primary_expr -> . FALSE
-    (123) primary_expr -> . TRUE
-    (124) primary_expr -> . STRINGLIT
-    (125) primary_expr -> . BOOLIT
-    (126) primary_expr -> . FLOATLIT
-    (127) primary_expr -> . INTLIT
-    (128) primary_expr -> . ( expr )
-    FOR             shift and go to state 181
-    IDENT           shift and go to state 182
-    SUPER           shift and go to state 183
-    PUBLIC          shift and go to state 184
-    PRIVATE         shift and go to state 185
-    PRINTF          shift and go to state 186
-    CONTINUE        shift and go to state 187
-    BREAK           shift and go to state 188
-    WHILE           shift and go to state 189
-    RETURN          shift and go to state 190
-    IF              shift and go to state 191
     {               shift and go to state 119
-    (               shift and go to state 53
-    NOT             shift and go to state 55
-    !               shift and go to state 56
-    -               shift and go to state 50
-    +               shift and go to state 51
-    DECREMENT       shift and go to state 57
-    INCREMENT       shift and go to state 58
-    FALSE           shift and go to state 60
-    TRUE            shift and go to state 61
-    STRINGLIT       shift and go to state 62
-    BOOLIT          shift and go to state 63
-    FLOATLIT        shift and go to state 64
-    INTLIT          shift and go to state 65
 
-    stmt                           shift and go to state 251
-    for_stmt                       shift and go to state 168
-    object_decl                    shift and go to state 169
-    super_stmt                     shift and go to state 170
-    public_stmt                    shift and go to state 171
-    private_stmt                   shift and go to state 172
-    print_stmt                     shift and go to state 173
-    continue_stmt                  shift and go to state 174
-    break_stmt                     shift and go to state 175
-    while_stmt                     shift and go to state 176
-    return_stmt                    shift and go to state 177
-    if_stmt                        shift and go to state 178
-    compound_stmt                  shift and go to state 179
-    expr_stmt                      shift and go to state 180
-    expr                           shift and go to state 68
-    assignment_expr                shift and go to state 192
-    logical_or_expr                shift and go to state 44
-    logical_and_expr               shift and go to state 45
-    equality_expr                  shift and go to state 46
-    relational_expr                shift and go to state 47
-    additive_expr                  shift and go to state 48
-    multiplicative_expr            shift and go to state 49
-    unary_expr                     shift and go to state 52
-    postfix_expr                   shift and go to state 54
-    primary_expr                   shift and go to state 59
+    compound_stmt                  shift and go to state 251
 
 state 251
 
-    (43) for_stmt -> FOR ( for_init ; for_cond ; for_incr ) stmt .
-    FOR             reduce using rule 43 (for_stmt -> FOR ( for_init ; for_cond ; for_incr ) stmt .)
-    IDENT           reduce using rule 43 (for_stmt -> FOR ( for_init ; for_cond ; for_incr ) stmt .)
-    SUPER           reduce using rule 43 (for_stmt -> FOR ( for_init ; for_cond ; for_incr ) stmt .)
-    PUBLIC          reduce using rule 43 (for_stmt -> FOR ( for_init ; for_cond ; for_incr ) stmt .)
-    PRIVATE         reduce using rule 43 (for_stmt -> FOR ( for_init ; for_cond ; for_incr ) stmt .)
-    PRINTF          reduce using rule 43 (for_stmt -> FOR ( for_init ; for_cond ; for_incr ) stmt .)
-    CONTINUE        reduce using rule 43 (for_stmt -> FOR ( for_init ; for_cond ; for_incr ) stmt .)
-    BREAK           reduce using rule 43 (for_stmt -> FOR ( for_init ; for_cond ; for_incr ) stmt .)
-    WHILE           reduce using rule 43 (for_stmt -> FOR ( for_init ; for_cond ; for_incr ) stmt .)
-    RETURN          reduce using rule 43 (for_stmt -> FOR ( for_init ; for_cond ; for_incr ) stmt .)
-    IF              reduce using rule 43 (for_stmt -> FOR ( for_init ; for_cond ; for_incr ) stmt .)
-    {               reduce using rule 43 (for_stmt -> FOR ( for_init ; for_cond ; for_incr ) stmt .)
-    (               reduce using rule 43 (for_stmt -> FOR ( for_init ; for_cond ; for_incr ) stmt .)
-    NOT             reduce using rule 43 (for_stmt -> FOR ( for_init ; for_cond ; for_incr ) stmt .)
-    !               reduce using rule 43 (for_stmt -> FOR ( for_init ; for_cond ; for_incr ) stmt .)
-    -               reduce using rule 43 (for_stmt -> FOR ( for_init ; for_cond ; for_incr ) stmt .)
-    +               reduce using rule 43 (for_stmt -> FOR ( for_init ; for_cond ; for_incr ) stmt .)
-    DECREMENT       reduce using rule 43 (for_stmt -> FOR ( for_init ; for_cond ; for_incr ) stmt .)
-    INCREMENT       reduce using rule 43 (for_stmt -> FOR ( for_init ; for_cond ; for_incr ) stmt .)
-    FALSE           reduce using rule 43 (for_stmt -> FOR ( for_init ; for_cond ; for_incr ) stmt .)
-    TRUE            reduce using rule 43 (for_stmt -> FOR ( for_init ; for_cond ; for_incr ) stmt .)
-    STRINGLIT       reduce using rule 43 (for_stmt -> FOR ( for_init ; for_cond ; for_incr ) stmt .)
-    BOOLIT          reduce using rule 43 (for_stmt -> FOR ( for_init ; for_cond ; for_incr ) stmt .)
-    FLOATLIT        reduce using rule 43 (for_stmt -> FOR ( for_init ; for_cond ; for_incr ) stmt .)
-    INTLIT          reduce using rule 43 (for_stmt -> FOR ( for_init ; for_cond ; for_incr ) stmt .)
-    }               reduce using rule 43 (for_stmt -> FOR ( for_init ; for_cond ; for_incr ) stmt .)
-    ELSE            reduce using rule 43 (for_stmt -> FOR ( for_init ; for_cond ; for_incr ) stmt .)
+    (43) for_stmt -> FOR ( for_init ; for_cond ; for_incr ) compound_stmt .
+    FOR             reduce using rule 43 (for_stmt -> FOR ( for_init ; for_cond ; for_incr ) compound_stmt .)
+    IDENT           reduce using rule 43 (for_stmt -> FOR ( for_init ; for_cond ; for_incr ) compound_stmt .)
+    SUPER           reduce using rule 43 (for_stmt -> FOR ( for_init ; for_cond ; for_incr ) compound_stmt .)
+    PUBLIC          reduce using rule 43 (for_stmt -> FOR ( for_init ; for_cond ; for_incr ) compound_stmt .)
+    PRIVATE         reduce using rule 43 (for_stmt -> FOR ( for_init ; for_cond ; for_incr ) compound_stmt .)
+    PRINTF          reduce using rule 43 (for_stmt -> FOR ( for_init ; for_cond ; for_incr ) compound_stmt .)
+    CONTINUE        reduce using rule 43 (for_stmt -> FOR ( for_init ; for_cond ; for_incr ) compound_stmt .)
+    BREAK           reduce using rule 43 (for_stmt -> FOR ( for_init ; for_cond ; for_incr ) compound_stmt .)
+    WHILE           reduce using rule 43 (for_stmt -> FOR ( for_init ; for_cond ; for_incr ) compound_stmt .)
+    RETURN          reduce using rule 43 (for_stmt -> FOR ( for_init ; for_cond ; for_incr ) compound_stmt .)
+    IF              reduce using rule 43 (for_stmt -> FOR ( for_init ; for_cond ; for_incr ) compound_stmt .)
+    {               reduce using rule 43 (for_stmt -> FOR ( for_init ; for_cond ; for_incr ) compound_stmt .)
+    (               reduce using rule 43 (for_stmt -> FOR ( for_init ; for_cond ; for_incr ) compound_stmt .)
+    NOT             reduce using rule 43 (for_stmt -> FOR ( for_init ; for_cond ; for_incr ) compound_stmt .)
+    !               reduce using rule 43 (for_stmt -> FOR ( for_init ; for_cond ; for_incr ) compound_stmt .)
+    -               reduce using rule 43 (for_stmt -> FOR ( for_init ; for_cond ; for_incr ) compound_stmt .)
+    +               reduce using rule 43 (for_stmt -> FOR ( for_init ; for_cond ; for_incr ) compound_stmt .)
+    DECREMENT       reduce using rule 43 (for_stmt -> FOR ( for_init ; for_cond ; for_incr ) compound_stmt .)
+    INCREMENT       reduce using rule 43 (for_stmt -> FOR ( for_init ; for_cond ; for_incr ) compound_stmt .)
+    FALSE           reduce using rule 43 (for_stmt -> FOR ( for_init ; for_cond ; for_incr ) compound_stmt .)
+    TRUE            reduce using rule 43 (for_stmt -> FOR ( for_init ; for_cond ; for_incr ) compound_stmt .)
+    STRINGLIT       reduce using rule 43 (for_stmt -> FOR ( for_init ; for_cond ; for_incr ) compound_stmt .)
+    BOOLIT          reduce using rule 43 (for_stmt -> FOR ( for_init ; for_cond ; for_incr ) compound_stmt .)
+    FLOATLIT        reduce using rule 43 (for_stmt -> FOR ( for_init ; for_cond ; for_incr ) compound_stmt .)
+    INTLIT          reduce using rule 43 (for_stmt -> FOR ( for_init ; for_cond ; for_incr ) compound_stmt .)
+    }               reduce using rule 43 (for_stmt -> FOR ( for_init ; for_cond ; for_incr ) compound_stmt .)
+    ELSE            reduce using rule 43 (for_stmt -> FOR ( for_init ; for_cond ; for_incr ) compound_stmt .)

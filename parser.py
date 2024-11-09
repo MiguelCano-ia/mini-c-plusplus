@@ -133,13 +133,13 @@ class Parser(sly.Parser):
         return p[0]
 
     # Sentencia 'for'
-    @_("FOR '(' for_init ';' for_cond ';' for_incr ')' stmt")
+    @_("FOR '(' for_init ';' for_cond ';' for_incr ')' compound_stmt")
     def for_stmt(self, p):
         return ForStmt(
             initialization=p.for_init,
             condition=p.for_cond,
             increment=p.for_incr,
-            body=p.stmt
+            body=p.compound_stmt
         )
 
     # Ajuste en 'for_init' para usar 'var_decl_no_semi'

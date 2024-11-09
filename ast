@@ -5,88 +5,50 @@ digraph ast {
 int main"]
 	n1 -> n3
 	n3 [label=Body]
-	n4 [label="bool a ="]
-	n5 [label="Const True"]
-	n4 -> n5
-	n3 -> n4
-	n6 [label="bool b ="]
-	n7 [label="Const False"]
+	n4 [label=For]
+	n5 [label=Initialization]
+	n6 [label="int i ="]
+	n7 [label="Const 0"]
 	n6 -> n7
-	n3 -> n6
-	n8 [label=If]
-	n9 [label=Cond]
-	n10 [label=ShortCircuitAnd]
-	n11 [label="Var a"]
-	n12 [label="Var b"]
-	n10 -> n11 [label=left]
-	n10 -> n12 [label=right]
+	n5 -> n6
+	n4 -> n5
+	n8 [label=Condition]
+	n9 [label="<"]
+	n10 [label="Var i"]
+	n11 [label="Const 5"]
 	n9 -> n10
+	n9 -> n11
 	n8 -> n9
-	n13 [label=Then]
-	n14 [label=Return]
-	n15 [label="Const 1"]
+	n4 -> n8
+	n12 [label=Increment]
+	n13 [label="i ="]
+	n14 [label="+"]
+	n15 [label="Var i"]
+	n16 [label="Const 1"]
 	n14 -> n15
+	n14 -> n16
 	n13 -> n14
-	n8 -> n13
-	n16 [label=Else]
-	n17 [label=If]
-	n18 [label=Cond]
-	n19 [label=ShortCircuitOr]
-	n20 [label="Var a"]
-	n21 [label="Var b"]
-	n19 -> n20 [label=left]
-	n19 -> n21 [label=right]
+	n12 -> n13
+	n4 -> n12
+	n17 [label=Body]
+	n18 [label=If]
+	n19 [label=Cond]
+	n20 [label="=="]
+	n21 [label="Var i"]
+	n22 [label="Const 3"]
+	n20 -> n21
+	n20 -> n22
+	n19 -> n20
 	n18 -> n19
-	n17 -> n18
-	n22 [label=Then]
-	n23 [label=Return]
-	n24 [label="Const 0"]
+	n23 [label=Then]
+	n24 [label=Break]
 	n23 -> n24
-	n22 -> n23
-	n17 -> n22
-	n16 -> n17
-	n8 -> n16
-	n3 -> n8
-	n25 [label="Function
-bool equalator"]
-	n25 -> n27
-	n27 [label=Body]
-	n28 [label="int a ="]
-	n29 [label="Const 5"]
-	n28 -> n29
-	n27 -> n28
-	n30 [label="int b ="]
-	n31 [label="Const 10"]
-	n30 -> n31
-	n27 -> n30
-	n32 [label=If]
-	n33 [label=Cond]
-	n34 [label=ShortCircuitOr]
-	n35 [label="=="]
-	n36 [label="Var a"]
-	n37 [label="Const 5"]
-	n35 -> n36
-	n35 -> n37
-	n38 [label=">"]
-	n39 [label=Grouping]
-	n40 [label="/"]
-	n41 [label="Var b"]
-	n42 [label="Var a"]
-	n40 -> n41
-	n40 -> n42
-	n39 -> n40
-	n43 [label="Const 2"]
-	n38 -> n39
-	n38 -> n43
-	n34 -> n35 [label=left]
-	n34 -> n38 [label=right]
-	n33 -> n34
-	n32 -> n33
-	n44 [label=Then]
-	n32 -> n44
-	n27 -> n32
-	n45 [label=Return]
-	n46 [label="Const True"]
-	n45 -> n46
-	n27 -> n45
+	n18 -> n23
+	n17 -> n18
+	n4 -> n17
+	n3 -> n4
+	n25 [label=Return]
+	n26 [label="Const 0"]
+	n25 -> n26
+	n3 -> n25
 }

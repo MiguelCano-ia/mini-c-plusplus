@@ -98,10 +98,10 @@ class WhileStmt(Statement):
   
 @dataclass
 class ForStmt(Statement):
-  initialization: Optional[Statement]  # Puede ser VarDecl o ExprStmt
-  condition: Optional[Expression]
-  increment: Optional[Expression]
-  body: Statement
+  initialization: Statement  # Puede ser VarDecl o ExprStmt
+  condition: Expression
+  increment: Statement
+  body: List[Statement] = field(default_factory = list)
 
   
 @dataclass
@@ -382,27 +382,60 @@ class MakeDot(Visitor):
       self.dot.edge(name, stmt_name)
     return name
   
-  def visit(self, fs: ForStmt):
-    name = self.name()
-    self.dot.node(name, label='For')
-
-    if fs.initialization:
-        init_name = fs.initialization.accept(self)
-        self.dot.edge(name, init_name, label='Init')
-
-    if fs.condition:
-        cond_name = fs.condition.accept(self)
-        self.dot.edge(name, cond_name, label='Cond')
-
-    if fs.increment:
-        incr_name = fs.increment.accept(self)
-        self.dot.edge(name, incr_name, label='Incr')
-
-    body_name = fs.body.accept(self)
-    self.dot.edge(name, body_name, label='Body')
-
-    return name
+  # def visit(self, fs: ForStmt):
+  #   name = self.name()
+  #   self.dot.node(name, label = 'For')
+  #   init_name = fs.initialization.accept(self)
+  #   cond_name = fs.condition.accept(self)
+  #   inc_name = fs.increment.accept(self)
+  #   body_name = self.name()
+  #   self.dot.node(body_name, label = 'Body')
+  #   for stmt in fs.body:
+  #     stmt_name = stmt.accept(self)
+  #     self.dot.edge(body_name, stmt_name)
+  #   self.dot.edge(name, init_name)
+  #   self.dot.edge(name, cond_name)
+  #   self.dot.edge(name, inc_name)
+  #   self.dot.edge(name, body_name)
+  #   return name
   
+  def visit(self,fs:ForStmt):
+    name = self.name()
+    self.dot.node(name, label = 'For')
+    init_name = self.name()
+    self.dot.node(init_name, label = 'Initialization')
+    if isinstance(fs.initialization, VarDecl):
+      decl_name = fs.initialization.accept(self)
+      self.dot.edge(init_name, decl_name)
+    else:
+      expr_name = fs.initialization.accept(self)
+      self.dot.edge(init_name, expr_name)
+    self.dot.edge(name, init_name)
+    
+    cond_name = self.name()
+    self.dot.node(cond_name, label = 'Condition')
+    cond_expr_name = fs.condition.accept(self)
+    self.dot.edge(cond_name, cond_expr_name)
+    self.dot.edge(name, cond_name)
+    
+    inc_name = self.name()
+    self.dot.node(inc_name, label = 'Increment')
+    if isinstance(fs.increment, VarAssignExpr):
+      assign_name = fs.increment.accept(self)
+      self.dot.edge(inc_name, assign_name)
+    else:
+      expr_name = fs.increment.accept(self)
+      self.dot.edge(inc_name, expr_name)
+    self.dot.edge(name, inc_name)
+    
+    body_name = self.name()
+    self.dot.node(body_name, label = 'Body')
+    for stmt in fs.body:
+      stmt_name = stmt.accept(self)
+      self.dot.edge(body_name, stmt_name)
+    self.dot.edge(name, body_name)
+    return name
+
   def visit(self, ps : PrintStmt):
     name = self.name()
     self.dot.node(name, label = 'Print')
