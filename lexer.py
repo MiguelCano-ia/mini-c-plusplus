@@ -102,7 +102,7 @@ class Lexer(sly.Lexer):
     OR = r'\|\|'
     NOT = r'!'
     INCREMENT = r'\+\+'
-    DECREMENT = r'\-\-'
+    DECREMENT = r'--'
     PLUS_ASSIGN = r'\+='
     MINUS_ASSIGN = r'\-='
     MULT_ASSIGN = r'\*='

@@ -468,6 +468,64 @@ class SemanticAnalyzer(Visitor):
         if result_type is None:
             self.errors.append(f"Error: Operación '{node.operand}' no soportada entre '{left_type}' y '{right_type}'.")
         return result_type
+    
+    def visit_PrefixIncExpr(self, node: PrefixIncExpr):
+        if not isinstance(node.expr, VarExpr) and not isinstance(node.expr, ArrayLookupExpr):
+            self.errors.append("Error: El operador '++' debe aplicarse a una variable o elemento de arreglo.")
+            return None
+        var_type = self.visit(node.expr)
+        if var_type not in {'int', 'float'}:
+            self.errors.append(f"Error: El operador '++' no puede aplicarse a variables de tipo '{var_type}'.")
+            return None
+        return var_type
+
+    def visit_PrefixDecExpr(self, node: PrefixDecExpr):
+        if not isinstance(node.expr, VarExpr) and not isinstance(node.expr, ArrayLookupExpr):
+            self.errors.append("Error: El operador '--' debe aplicarse a una variable o elemento de arreglo.")
+            return None
+        var_type = self.visit(node.expr)
+        if var_type not in {'int', 'float'}:
+            self.errors.append(f"Error: El operador '--' no puede aplicarse a variables de tipo '{var_type}'.")
+            return None
+        return var_type
+
+    def visit_PostfixIncExpr(self, node: PostfixIncExpr):
+        if not isinstance(node.expr, VarExpr) and not isinstance(node.expr, ArrayLookupExpr):
+            self.errors.append("Error: El operador '++' debe aplicarse a una variable o elemento de arreglo.")
+            return None
+        var_type = self.visit(node.expr)
+        if var_type not in {'int', 'float'}:
+            self.errors.append(f"Error: El operador '++' no puede aplicarse a variables de tipo '{var_type}'.")
+            return None
+        return var_type
+
+    def visit_PostfixDecExpr(self, node: PostfixDecExpr):
+        if not isinstance(node.expr, VarExpr) and not isinstance(node.expr, ArrayLookupExpr):
+            self.errors.append("Error: El operador '--' debe aplicarse a una variable o elemento de arreglo.")
+            return None
+        var_type = self.visit(node.expr)
+        if var_type not in {'int', 'float'}:
+            self.errors.append(f"Error: El operador '--' no puede aplicarse a variables de tipo '{var_type}'.")
+            return None
+        return var_type
+    
+    def visit_ShortCircuitAndExpr(self, node: ShortCircuitAndExpr):
+        left_type = self.visit(node.left)
+        if left_type != 'bool':
+            self.errors.append(f"Error: La expresión izquierda de '&&' debe ser de tipo 'bool', se obtuvo '{left_type}'.")
+        right_type = self.visit(node.right)
+        if right_type != 'bool':
+            self.errors.append(f"Error: La expresión derecha de '&&' debe ser de tipo 'bool', se obtuvo '{right_type}'.")
+        return 'bool'
+
+    def visit_ShortCircuitOrExpr(self, node: ShortCircuitOrExpr):
+        left_type = self.visit(node.left)
+        if left_type != 'bool':
+            self.errors.append(f"Error: La expresión izquierda de '||' debe ser de tipo 'bool', se obtuvo '{left_type}'.")
+        right_type = self.visit(node.right)
+        if right_type != 'bool':
+            self.errors.append(f"Error: La expresión derecha de '||' debe ser de tipo 'bool', se obtuvo '{right_type}'.")
+        return 'bool'
 
     def visit_UnaryExpr(self, node: UnaryExpr):
         expr_type = self.visit(node.expr)

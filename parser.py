@@ -12,10 +12,11 @@ class Parser(sly.Parser):
     tokens = Lexer.tokens
 
     precedence = (
+      ('right', 'INCREMENT', 'DECREMENT'), 
       ('right', 'CAST'),
       ('nonassoc', IFX),
       ('nonassoc', ELSE),
-      ('right', UNARY, '!'),
+      ('right', '!', 'NOT', '+', '-'),
       ('left', 'PLUS_ASSIGN', 'MINUS_ASSIGN', 'MULT_ASSIGN', 'DIV_ASSIGN'),
     ) 
 
@@ -310,7 +311,7 @@ class Parser(sly.Parser):
     # Operadores lógicos 'OR'
     @_("logical_or_expr OR logical_and_expr")
     def logical_or_expr(self, p):
-        return BinaryExpr(p.logical_or_expr, p.OR, p.logical_and_expr)
+        return ShortCircuitOrExpr(p.logical_or_expr, p.logical_and_expr)
 
     @_("logical_and_expr")
     def logical_or_expr(self, p):
@@ -319,7 +320,7 @@ class Parser(sly.Parser):
     # Operadores lógicos 'AND'
     @_("logical_and_expr AND equality_expr")
     def logical_and_expr(self, p):
-        return BinaryExpr(p.logical_and_expr, p.AND, p.equality_expr)
+        return ShortCircuitAndExpr(p.logical_and_expr, p.equality_expr)
 
     @_("equality_expr")
     def logical_and_expr(self, p):
@@ -368,19 +369,37 @@ class Parser(sly.Parser):
     def multiplicative_expr(self, p):
         return p.unary_expr
 
-    # Operadores unarios
-    @_("'-' unary_expr %prec UNARY",
-       "'!' unary_expr %prec UNARY",
-       "'+' unary_expr %prec UNARY",
-       "INCREMENT unary_expr %prec UNARY",
-       "DECREMENT unary_expr %prec UNARY",
-       "NOT unary_expr %prec UNARY")
+    @_('INCREMENT unary_expr',
+       'DECREMENT unary_expr',
+       "'+' unary_expr",
+       "'-' unary_expr",
+       "'!' unary_expr",
+       "NOT unary_expr")
     def unary_expr(self, p):
-        return UnaryExpr(p[0], p.unary_expr)
+        if p[0] == '++':
+            return PrefixIncExpr(p.unary_expr)
+        elif p[0] == '--':
+            return PrefixDecExpr(p.unary_expr)
+        else:
+            return UnaryExpr(p[0], p.unary_expr)
 
-    @_("primary_expr")
+    @_("postfix_expr")
     def unary_expr(self, p):
+        return p.postfix_expr
+
+    # Expresiones postfijas
+    @_('postfix_expr INCREMENT',
+       'postfix_expr DECREMENT')
+    def postfix_expr(self, p):
+        if p[1] == '++':
+            return PostfixIncExpr(p.postfix_expr)
+        elif p[1] == '--':
+            return PostfixDecExpr(p.postfix_expr)
+
+    @_('primary_expr')
+    def postfix_expr(self, p):
         return p.primary_expr
+
     
     @_("'(' type_spec ')' unary_expr %prec CAST")
     def unary_expr(self, p):
