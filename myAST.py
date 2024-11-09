@@ -147,6 +147,12 @@ class ConstExpr(Expression):
   value : Union[int, float, bool, str]
   
 @dataclass
+class CompoundAssignExpr(Expression):
+    ident: str
+    operator: str  
+    expr: Expression
+  
+@dataclass
 class VarExpr(Expression):
   ident : str
     
@@ -183,6 +189,11 @@ class BinaryExpr(Expression):
 @dataclass
 class UnaryExpr(Expression):
   operand: str
+  expr: Expression
+  
+@dataclass
+class CastExpr(Expression):
+  target_type: str
   expr: Expression
   
 @dataclass
@@ -322,7 +333,7 @@ class MakeDot(Visitor):
       self.dot.edge(name, else_name)
     return name
 
-  def visit (self, rs : ReturnStmt):
+  def visit(self, rs : ReturnStmt):
     name = self.name()
     self.dot.node(name, label = 'Return')
     if rs.expr:
@@ -365,7 +376,6 @@ class MakeDot(Visitor):
     self.dot.edge(name, body_name, label='Body')
 
     return name
-
   
   def visit(self, ps : PrintStmt):
     name = self.name()
@@ -491,6 +501,20 @@ class MakeDot(Visitor):
     expr_name = ue.expr.accept(self)
     self.dot.edge(name, expr_name)
     return name
+  
+  def visit(self, node: CastExpr):
+    name = self.name()
+    self.dot.node(name, label=f'Cast to {node.target_type}')
+    expr_name = node.expr.accept(self)
+    self.dot.edge(name, expr_name)
+    return name
+  
+  def visit(self, node: CompoundAssignExpr):
+        name = self.name()
+        self.dot.node(name, label=f'{node.ident} {node.operator}')
+        expr_name = node.expr.accept(self)
+        self.dot.edge(name, expr_name, label='Expr')
+        return name
   
   def visit(self, ge : GroupingExpr):
     name = self.name()
