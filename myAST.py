@@ -1,10 +1,9 @@
 from __future__ import annotations
 from dataclasses import dataclass,field
 from multimethod import multimeta
-from typing import List, Optional, Union
+from typing import List, Union
 
 from graphviz import Digraph
-from lexer import Lexer
 '''
 Clases abstractas para el AST
 '''
@@ -107,6 +106,12 @@ class ForStmt(Statement):
 @dataclass
 class PrintStmt(Statement):
   expr : Expression
+  args : List[Expression] = field(default_factory = list)
+  
+@dataclass
+class SprintfStmt(Statement):
+  expr : Expression
+  args : List[Expression] = field(default_factory = list)
   
 @dataclass
 class ContinueStmt(Statement):
@@ -151,14 +156,14 @@ class CompoundAssignExpr(Expression):
     ident: str
     operator: str  
     expr: Expression
-  
+
 @dataclass
 class VarExpr(Expression):
   ident : str
     
 @dataclass
 class ArrayLookupExpr(Expression):
-  ident : VarExpr
+  ident : str
   index : Expression
 
 @dataclass
@@ -382,23 +387,6 @@ class MakeDot(Visitor):
       self.dot.edge(name, stmt_name)
     return name
   
-  # def visit(self, fs: ForStmt):
-  #   name = self.name()
-  #   self.dot.node(name, label = 'For')
-  #   init_name = fs.initialization.accept(self)
-  #   cond_name = fs.condition.accept(self)
-  #   inc_name = fs.increment.accept(self)
-  #   body_name = self.name()
-  #   self.dot.node(body_name, label = 'Body')
-  #   for stmt in fs.body:
-  #     stmt_name = stmt.accept(self)
-  #     self.dot.edge(body_name, stmt_name)
-  #   self.dot.edge(name, init_name)
-  #   self.dot.edge(name, cond_name)
-  #   self.dot.edge(name, inc_name)
-  #   self.dot.edge(name, body_name)
-  #   return name
-  
   def visit(self,fs:ForStmt):
     name = self.name()
     self.dot.node(name, label = 'For')
@@ -441,6 +429,23 @@ class MakeDot(Visitor):
     self.dot.node(name, label = 'Print')
     expr_name = ps.expr.accept(self)
     self.dot.edge(name, expr_name)
+    
+    for arg in ps.args:
+      arg_name = arg.accept(self)
+      self.dot.edge(name, arg_name)
+    
+    return name
+  
+  def visit(self, ss : SprintfStmt):
+    name = self.name()
+    self.dot.node(name, label = 'Sprintf')
+    expr_name = ss.expr.accept(self)
+    self.dot.edge(name, expr_name)
+    
+    for arg in ss.args:
+      arg_name = arg.accept(self)
+      self.dot.edge(name, arg_name)
+    
     return name
   
   def visit(self, cs : ContinueStmt):
@@ -513,10 +518,14 @@ class MakeDot(Visitor):
   def visit(self, ale : ArrayLookupExpr):
     name = self.name()
     self.dot.node(name, label = 'Array Lookup')
-    ident_name = ale.ident.accept(self)
-    index_name = ale.index.accept(self)
+    
+    ident_name = self.name()
+    self.dot.node(ident_name, label = f'Ident {ale.ident}')
     self.dot.edge(name, ident_name)
-    self.dot.edge(name, index_name)
+    
+    index_name = ale.index.accept(self)
+    self.dot.edge(name, index_name, label='Index')
+    
     return name
   
   def visit(self, vae : VarAssignExpr):

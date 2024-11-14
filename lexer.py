@@ -11,7 +11,7 @@ class Lexer(sly.Lexer):
     tokens = {
         #Keywords
         VOID, BOOL, INT, FLOAT, STRING , IF, ELSE, WHILE,
-        RETURN, CONTINUE, SIZE, NEW, CLASS, PRINTF,
+        RETURN, CONTINUE, SIZE, NEW, CLASS, PRINTF, SPRINTF,
         THIS, SUPER, PRIVATE, PUBLIC, BREAK, TRUE, FALSE,
         FOR,
 
@@ -82,6 +82,7 @@ class Lexer(sly.Lexer):
     IDENT['new'] = NEW
     IDENT['class'] = CLASS
     IDENT['printf'] = PRINTF
+    IDENT['sprintf'] = SPRINTF
     IDENT['this'] = THIS
     IDENT['super'] = SUPER
     IDENT['private'] = PRIVATE

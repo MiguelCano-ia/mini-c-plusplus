@@ -24,7 +24,7 @@ class Parser(sly.Parser):
         self.debugging = True
 
     # Reglas de gramática
-
+    
     # Programa inicial: lista de declaraciones
     @_("decl_list")
     def program(self, p):
@@ -56,7 +56,7 @@ class Parser(sly.Parser):
     def class_body(self, p):
         return [p.class_member] + p.class_body
 
-    @_("")
+    @_("empty")
     def class_body(self, p):
         return []
 
@@ -121,14 +121,18 @@ class Parser(sly.Parser):
     def stmt_list(self, p):
         return []
 
+    @_("stmt local_decls stmt_list")
+    def stmt_list(self, p):
+        return [p.stmt] + p.local_decls + p.stmt_list
+
     @_("stmt stmt_list")
     def stmt_list(self, p):
         return [p.stmt] + p.stmt_list
 
     # Sentencias posibles
     @_("expr_stmt", "compound_stmt", "if_stmt", "return_stmt", "while_stmt",
-       "break_stmt", "continue_stmt", "print_stmt", "private_stmt",
-       "public_stmt", "super_stmt", "object_decl", "for_stmt")
+       "break_stmt", "continue_stmt", "print_stmt", "super_stmt",
+       "object_decl", "for_stmt", "this_stmt", "sprintf_stmt")
     def stmt(self, p):
         return p[0]
 
@@ -150,7 +154,7 @@ class Parser(sly.Parser):
     @_("assignment_expr")
     def for_init(self, p):
         return p.assignment_expr
-
+      
     @_("empty")
     def for_init(self, p):
         return None
@@ -163,6 +167,7 @@ class Parser(sly.Parser):
     @_("type_spec IDENT '=' assignment_expr")
     def var_decl_no_semi(self, p):
         return VarDecl(p.type_spec, p.IDENT, p.assignment_expr)
+      
 
     @_("type_spec IDENT '[' expr ']'")
     def var_decl_no_semi(self, p):
@@ -194,6 +199,7 @@ class Parser(sly.Parser):
     @_("assignment_expr ';'")
     def expr_stmt(self, p):
         return ExprStmt(p.assignment_expr)
+      
 
     # Expresiones de asignación
     @_("IDENT '=' assignment_expr",
@@ -210,7 +216,11 @@ class Parser(sly.Parser):
     @_("expr")
     def assignment_expr(self, p):
         return p.expr
-
+      
+    @_("IDENT '[' expr ']' '=' assignment_expr")
+    def assignment_expr(self, p):
+        return ArrayAssignExpr(p.IDENT, p.expr, p.assignment_expr)
+      
     # Sentencia 'if'
     @_("IF '(' expr ')' stmt %prec IFX")
     def if_stmt(self, p):
@@ -219,15 +229,6 @@ class Parser(sly.Parser):
     @_("IF '(' expr ')' stmt ELSE stmt")
     def if_stmt(self, p):
         return IfStmt(cond=p.expr, then_stmt=p.stmt0, else_stmt=p.stmt1)
-
-    # Sentencias 'private' y 'public'
-    @_("PRIVATE ':' stmt")
-    def private_stmt(self, p):
-        return PrivateStmt(p.stmt)
-
-    @_("PUBLIC ':' stmt")
-    def public_stmt(self, p):
-        return PublicStmt(p.stmt)
 
     # Sentencia 'return'
     @_("RETURN ';'")
@@ -266,9 +267,13 @@ class Parser(sly.Parser):
         return [p.expr]
 
     # Sentencia 'printf'
-    @_("PRINTF '(' expr ')' ';'")
+    @_("PRINTF '(' expr ',' args_list ')' ';'")
     def print_stmt(self, p):
-        return PrintStmt(p.expr)
+        return PrintStmt(p.expr, p.args_list)
+      
+    @_("SPRINTF '(' expr ',' args_list ')' ';'")
+    def sprintf_stmt(self, p):
+        return SprintfStmt(p.STRINGLIT, p.args_list)
 
     # Sentencia 'this'
     @_("THIS ';'")
@@ -283,6 +288,8 @@ class Parser(sly.Parser):
     @_("type_spec IDENT '=' assignment_expr ';'")
     def var_decl(self, p):
         return VarDecl(p.type_spec, p.IDENT, p.assignment_expr)
+      
+    
 
     @_("type_spec IDENT '[' expr ']' ';'")
     def var_decl(self, p):

@@ -2,7 +2,7 @@ from lexer import *
 from parser import *
 from myAST import *
 from rich import print
-from mchecker import *
+from newChecker import *
 import os
 
 def select_script():

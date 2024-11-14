@@ -7,6 +7,8 @@ int main() {
     } else if (a || b) {
       return 0;
     }
+
+    int c = 5;
 }
 
 bool equalator() {
