@@ -1,37 +1,36 @@
 digraph ast {
 	node [fillcolor=lightblue font=bold fontcolor=black shape=box style=filled]
 	edge [arrowhead=none color=black]
-	n1 [label="string format ="]
-	n2 [label="Const %d %f %s %c"]
-	n1 -> n2
-	n3 [label="Function
+	n1 [label="Function
 int main"]
-	n3 -> n5
-	n5 [label=Body]
-	n6 [label="int intValue ="]
-	n7 [label="Const 42"]
+	n1 -> n3
+	n3 [label=Body]
+	n4 [label="string s ="]
+	n5 [label="Const Hello, World!"]
+	n4 -> n5
+	n3 -> n4
+	n6 [label="string p ="]
+	n7 [label=Null]
 	n6 -> n7
-	n5 -> n6
-	n8 [label="float floatValue ="]
-	n9 [label="Const 3.14"]
+	n3 -> n6
+	n8 [label="int c ="]
+	n9 [label="Const 0"]
 	n8 -> n9
-	n5 -> n8
-	n10 [label="string stringValue ="]
-	n11 [label="Const Hello, world!"]
-	n10 -> n11
-	n5 -> n10
-	n12 [label=Print]
-	n13 [label="Const %d %f %s"]
+	n3 -> n8
+	n10 [label=If]
+	n11 [label=Cond]
+	n12 [label="=="]
+	n13 [label="Var p"]
+	n14 [label=Null]
 	n12 -> n13
-	n14 [label="Var intValue"]
 	n12 -> n14
-	n15 [label="Var floatValue"]
-	n12 -> n15
-	n16 [label="Var stringValue"]
-	n12 -> n16
-	n5 -> n12
-	n17 [label=Return]
-	n18 [label="Const 0"]
-	n17 -> n18
-	n5 -> n17
+	n11 -> n12
+	n10 -> n11
+	n15 [label=Then]
+	n16 [label=Return]
+	n17 [label="Const 0"]
+	n16 -> n17
+	n15 -> n16
+	n10 -> n15
+	n3 -> n10
 }

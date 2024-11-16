@@ -103,38 +103,45 @@ class Parser(sly.Parser):
         return ArrayDecl(ident=p.IDENT, var_type=p.type_spec, size=p.INTLIT)
 
     # Sentencia compuesta (bloque de código)
-    @_("'{' local_decls stmt_list '}'")
+    @_("'{' block_items '}'")
     def compound_stmt(self, p):
-        return list(p.local_decls) + list(p.stmt_list)
-
-    # Declaraciones locales
-    @_("var_decl local_decls")
-    def local_decls(self, p):
-        return [p.var_decl] + p.local_decls
-
-    @_("empty")
-    def local_decls(self, p):
-        return []
-
-    # Lista de sentencias
-    @_("empty")
-    def stmt_list(self, p):
-        return []
-
-    @_("stmt local_decls stmt_list")
-    def stmt_list(self, p):
-        return [p.stmt] + p.local_decls + p.stmt_list
-
-    @_("stmt stmt_list")
-    def stmt_list(self, p):
-        return [p.stmt] + p.stmt_list
-
+        return p.block_items
+      
+    @_("block_items block_item")
+    def block_items(self, p):
+        return p.block_items + [p.block_item]
+      
+    @_("block_item")
+    def block_items(self, p):
+        return [p.block_item]
+      
+    @_("stmt", "var_decl")
+    def block_item(self, p):
+        return p[0]
+  
     # Sentencias posibles
     @_("expr_stmt", "compound_stmt", "if_stmt", "return_stmt", "while_stmt",
-       "break_stmt", "continue_stmt", "print_stmt", "super_stmt",
-       "object_decl", "for_stmt", "this_stmt", "sprintf_stmt")
+       "break_stmt", "continue_stmt", "super_stmt",
+       "object_decl", "for_stmt", "this_stmt", "printf_stmt", "sprintf_stmt")
     def stmt(self, p):
         return p[0]
+      
+    @_("PRINTF '(' STRINGLIT ',' args_list ')' ';'")
+    def printf_stmt(self, p):
+        return PrintStmt(p.STRINGLIT, p.args_list)
+      
+    @_("PRINTF '(' STRINGLIT ')' ';'")
+    def printf_stmt(self, p):
+        return PrintStmt(p.STRINGLIT, [])
+      
+    @_("SPRINTF '(' expr ',' STRINGLIT ',' args_list ')' ';'")
+    def sprintf_stmt(self, p):
+        return SPrintStmt(p.expr, p.STRINGLIT, p.args_list)
+    
+    @_("SPRINTF '(' expr ',' STRINGLIT ')' ';'")
+    def sprintf_stmt(self, p):
+        return SPrintStmt(p.expr, p.STRINGLIT, [])
+
 
     # Sentencia 'for'
     @_("FOR '(' for_init ';' for_cond ';' for_incr ')' compound_stmt")
@@ -217,6 +224,10 @@ class Parser(sly.Parser):
     def assignment_expr(self, p):
         return p.expr
       
+    @_("NULL")
+    def primary_expr(self, p):
+        return NullExpr() 
+      
     @_("IDENT '[' expr ']' '=' assignment_expr")
     def assignment_expr(self, p):
         return ArrayAssignExpr(p.IDENT, p.expr, p.assignment_expr)
@@ -267,14 +278,7 @@ class Parser(sly.Parser):
         return [p.expr]
 
     # Sentencia 'printf'
-    @_("PRINTF '(' expr ',' args_list ')' ';'")
-    def print_stmt(self, p):
-        return PrintStmt(p.expr, p.args_list)
       
-    @_("SPRINTF '(' expr ',' args_list ')' ';'")
-    def sprintf_stmt(self, p):
-        return SprintfStmt(p.STRINGLIT, p.args_list)
-
     # Sentencia 'this'
     @_("THIS ';'")
     def this_stmt(self, p):

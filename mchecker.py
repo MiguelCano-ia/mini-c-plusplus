@@ -1,568 +1,669 @@
+from __future__ import annotations
+import re 
+from dataclasses import dataclass
 from collections import ChainMap
-from typing import List, Union
 from myAST import *
+from multimethod import multimethod
+from rich import print
 
+@dataclass
 class SemanticAnalyzer(Visitor):
-    def __init__(self):
-        self.symtable = ChainMap()
-        self.errors = []
-        self.current_function = None
-        self.current_class = None
-        self.loop_nesting = 0  # Para controlar 'break' y 'continue'x
-        self.functions_declared = {}  # Nuevo atributo para las funciones declaradas
+  symtable = ChainMap()
+  errors = []
+  currentFunction = None
+  currentClass = None
+  loopNesting = 0
+  functionsDeclared = {}
+  
+  def visit (self, node):
+    methodName = 'visit' + node.__class__.__name__
+    visitor = getattr(self, methodName, self.generic_visit)
+    return visitor(node)
+  
+  def generic_visit(self, node):
+    raise Exception(f"No visit method for {node.__class__.__name__}")
 
-    def visit(self, node):
-        method_name = 'visit_' + node.__class__.__name__
-        visitor = getattr(self, method_name, self.generic_visit)
-        return visitor(node)
+  def lookup(self, name):
+    for scope in self.symtable.maps:
+      if name in scope:
+        return scope[name]
+    return None
 
-    def generic_visit(self, node):
-        print(f"No hay método visit_{node.__class__.__name__}")
+  def lookupClass(self, class_name):
+    for scope in self.symtable.maps:
+      if class_name in scope:
+        class_decl = scope[class_name]
+        if isinstance(class_decl, ClassDecl):
+          return class_decl
+    return None
 
-    def lookup(self, name):
-        for scope in self.symtable.maps:
-            if name in scope:
-                return scope[name]
+  def findConstructor(self, class_decl, class_name):
+    for member in class_decl.body:
+      if isinstance(member, FuncDecl) and member.ident == class_name:
+        return member
+    return None
+
+  def find_method(self, class_decl, method_name):
+    for member in class_decl.body:
+      if isinstance(member, FuncDecl) and member.ident == method_name:
+        return member
+      if class_decl.super_class:
+        super_class_decl = self.lookupClass(class_decl.super_class)
+        if super_class_decl:
+          return self.find_method(super_class_decl, method_name)
+    return None
+
+  def checkAssignmentCompatibility(self, var_type, expr_type):
+    if var_type == expr_type:
+      return True
+    if expr_type == 'null':
+      if var_type == 'string':
+        return True
+      if var_type in self.symtable.maps[0]:
+        class_decl = self.lookupClass(var_type)
+        if class_decl:
+          return True
+    if var_type == 'int' and expr_type == 'float':
+      return True
+    return False
+
+  def checkBinaryOperation(self, operator, leftType, rightType):
+    numericOps = {'+', '-', '*', '/', '%'}
+    relationalOps = {'<', '>', '<=', '>=', '==', '!='}
+    equalityOps = {'==', '!='}
+    logicalOps = {'AND', 'OR', '&&', '||', '!'}
+    
+    if operator in equalityOps:
+      if leftType == 'null' or rightType == 'null':
+        if leftType in self.symtable.maps[0] or rightType in self.symtable.maps[0]:
+          return 'bool'
+        if leftType == 'string' or rightType == 'string':
+          return 'bool'
+        self.errors.append(f"Error: Invalid comparison between '{leftType}' and '{rightType}'")
         return None
-
-    def lookup_class(self, class_name):
-        for scope in self.symtable.maps:
-            if class_name in scope:
-                class_decl = scope[class_name]
-                if isinstance(class_decl, ClassDecl):
-                    return class_decl
-        return None
-
-    def find_constructor(self, class_decl, class_name):
-        for member in class_decl.body:
-            if isinstance(member, FuncDecl) and member.ident == class_name:
-                return member
-        return None
-
-    def find_method(self, class_decl, method_name):
-        for member in class_decl.body:
-            if isinstance(member, FuncDecl) and member.ident == method_name:
-                return member
-        if class_decl.super_class:
-            super_class_decl = self.lookup_class(class_decl.super_class)
-            if super_class_decl:
-                return self.find_method(super_class_decl, method_name)
-        return None
-
-    def check_assignment_compatibility(self, var_type, expr_type):
-        if var_type == expr_type:
-            return True
-        if var_type == 'float' and expr_type == 'int':
-            return True
-        return False
-
-    def check_binary_operation(self, operator, left_type, right_type):
-        numeric_ops = {'+', '-', '*', '/', '%'}
-        relational_ops = {'<', '<=', '>', '>=', '==', '!='}
-        logical_ops = {'AND', 'OR', '&&', '||', '!'}
-        if operator in numeric_ops:
-            if left_type == 'int' and right_type == 'int':
-                return 'int'
-            elif left_type in {'int', 'float'} and right_type in {'int', 'float'}:
-                return 'float'
-            else:
-                return None
-        elif operator in relational_ops:
-            if left_type in {'int', 'float'} and right_type in {'int', 'float'}:
-                return 'bool'
-            else:
-                return None
-        elif operator in logical_ops:
-            if left_type == 'bool' and right_type == 'bool':
-                return 'bool'
-            else:
-                return None
-        else:
-            return None
-
-    def check_unary_operation(self, operator, expr_type):
-        if operator == '!':
-            if expr_type == 'bool':
-                return 'bool'
-            else:
-                return None
-        elif operator in {'+', '-'}:
-            if expr_type in {'int', 'float'}:
-                return expr_type
-            else:
-                return None
-        elif operator in {'++', '--'}:
-            if expr_type in {'int', 'float'}:
-                return expr_type
-            else:
-                return None
-        else:
-            return None
-        
-    def check_main_function(self):
-        main_func = self.functions_declared.get('main')
-        if main_func is None:
-            self.errors.append("Error: No se encontró la función 'main' en el programa.")
-        else:
-            if main_func.return_type != 'int':
-                self.errors.append("Error: La función 'main' debe tener tipo de retorno 'int'.")
-            if len(main_func.params) != 0:
-                self.errors.append("Error: La función 'main' no debe tener parámetros.")
-                
-    def is_cast_valid(self, from_type: str, to_type: str) -> bool:
-        valid_casts = {
-            'int': ['float'],
-            'float': ['int'],
-        }
-        return to_type in valid_casts.get(from_type, []) or from_type == to_type
-
-    # Implementación de los métodos visit_ para cada nodo del AST
-
-    def visit_Program(self, node: Program):
-        for stmt in node.stmts:
-            self.visit(stmt)
-        # Verificar la función 'main' al final del análisis
-        self.check_main_function()
-
-
-    def visit_FuncDecl(self, node: FuncDecl):
-        func_name = node.ident
-
-        if func_name in self.symtable.maps[0]:
-            self.errors.append(f"Error: Función '{func_name}' ya declarada.")
-            return
-        else:
-            self.symtable[func_name] = node  
-
-        self.functions_declared[func_name] = node
-
-        self.current_function = node
-        self.symtable = self.symtable.new_child()
-
-        for param in node.params:
-            if param.ident in self.symtable.maps[0]:
-                self.errors.append(f"Error: Parámetro '{param.ident}' ya declarado en la función '{func_name}'.")
-            else:
-                self.symtable[param.ident] = param.var_type
-
-        for stmt in node.body:
-            self.visit(stmt)
-
-        self.symtable = self.symtable.parents
-        self.current_function = None
-
-
-    def visit_VarDecl(self, node: VarDecl):
-        var_name = node.ident
-        if var_name in self.symtable.maps[0]:
-            self.errors.append(f"Error: Variable '{var_name}' ya declarada en este ámbito.")
-        else:
-            self.symtable[var_name] = node.var_type
-        if node.expr:
-            expr_type = self.visit(node.expr)
-            if not self.check_assignment_compatibility(node.var_type, expr_type):
-                self.errors.append(f"Error: No se puede asignar un valor de tipo '{expr_type}' a la variable '{var_name}' de tipo '{node.var_type}'.")
-
-    def visit_ArrayDecl(self, node: ArrayDecl):
-        array_name = node.ident
-        if array_name in self.symtable.maps[0]:
-            self.errors.append(f"Error: Arreglo '{array_name}' ya declarado en este ámbito.")
-        else:
-            self.symtable[array_name] = node
-        size_type = self.visit(node.size)
-        if size_type != 'int':
-            self.errors.append(f"Error: El tamaño del arreglo '{array_name}' debe ser un entero, se obtuvo '{size_type}'.")
-
-    def visit_ObjectDecl(self, node: ObjectDecl):
-        object_name = node.instance_name
-        class_name = node.class_type
-        if object_name in self.symtable.maps[0]:
-            self.errors.append(f"Error: Objeto '{object_name}' ya declarado en este ámbito.")
-        else:
-            self.symtable[object_name] = class_name
-        class_decl = self.lookup_class(class_name)
-        if class_decl is None:
-            self.errors.append(f"Error: Clase '{class_name}' no declarada.")
-        else:
-            if node.args:
-                constructor = self.find_constructor(class_decl, class_name)
-                if constructor:
-                    if len(node.args) != len(constructor.params):
-                        self.errors.append(f"Error: El constructor de '{class_name}' espera {len(constructor.params)} argumentos, pero se proporcionaron {len(node.args)}.")
-                    else:
-                        for arg_expr, param in zip(node.args, constructor.params):
-                            arg_type = self.visit(arg_expr)
-                            param_type = param.var_type
-                            if not self.check_assignment_compatibility(param_type, arg_type):
-                                self.errors.append(f"Error: El argumento de tipo '{arg_type}' no es compatible con el parámetro '{param.ident}' de tipo '{param_type}' en el constructor de '{class_name}'.")
-                else:
-                    self.errors.append(f"Error: No se encontró un constructor para la clase '{class_name}'.")
-
-    def visit_ExprStmt(self, node: ExprStmt):
-        self.visit(node.expr)
-
-    def visit_NullStmt(self, node: NullStmt):
-        pass
-
-    def visit_IfStmt(self, node: IfStmt):
-        cond_type = self.visit(node.cond)
-        if cond_type != 'bool':
-            self.errors.append(f"Error: La condición del 'if' debe ser de tipo 'bool', se obtuvo '{cond_type}'.")
-        self.symtable = self.symtable.new_child()
-        for stmt in node.then_stmt:
-            self.visit(stmt)
-        self.symtable = self.symtable.parents
-        if node.else_stmt:
-            self.symtable = self.symtable.new_child()
-            if isinstance(node.else_stmt, list):
-                for stmt in node.else_stmt:
-                    self.visit(stmt)
-            else:
-                self.visit(node.else_stmt)
-            self.symtable = self.symtable.parents
-
-    def visit_ReturnStmt(self, node: ReturnStmt):
-        if self.current_function is None:
-            self.errors.append("Error: 'return' fuera de una función.")
-            return
-        if node.expr:
-            return_type = self.visit(node.expr)
-        else:
-            return_type = 'void'
-        expected_type = self.current_function.return_type
-        if return_type != expected_type:
-            self.errors.append(f"Error: La función '{self.current_function.ident}' debe retornar '{expected_type}', pero retorna '{return_type}'.")
-
-    def visit_BreakStmt(self, node: BreakStmt):
-        if self.loop_nesting == 0:
-            self.errors.append("Error: 'break' fuera de un bucle.")
-
-    def visit_ContinueStmt(self, node: ContinueStmt):
-        if self.loop_nesting == 0:
-            self.errors.append("Error: 'continue' fuera de un bucle.")
-
-    def visit_WhileStmt(self, node: WhileStmt):
-        cond_type = self.visit(node.cond)
-        if cond_type != 'bool':
-            self.errors.append(f"Error: La condición del 'while' debe ser de tipo 'bool', se obtuvo '{cond_type}'.")
-        self.loop_nesting += 1
-        self.symtable = self.symtable.new_child()
-        for stmt in node.body:
-            self.visit(stmt)
-        self.symtable = self.symtable.parents
-        self.loop_nesting -= 1
-
-    def visit_ForStmt(self, node: ForStmt):
-        self.loop_nesting += 1
-        self.symtable = self.symtable.new_child()
-
-        if node.initialization:
-            self.visit(node.initialization)
-
-        if node.condition:
-            cond_type = self.visit(node.condition)
-            if cond_type != 'bool':
-                self.errors.append(f"Error: La condición del 'for' debe ser de tipo 'bool', se obtuvo '{cond_type}'.")
-        else:
-            pass
-        if node.increment:
-            self.visit(node.increment)
-
-        for stmt in node.body:
-            self.visit(stmt)
-
-        self.symtable = self.symtable.parents
-        self.loop_nesting -= 1
-
-
-    def visit_PrintStmt(self, node: PrintStmt):
-        self.visit(node.expr)
-
-    def visit_SizeStmt(self, node: SizeStmt):
-        var_type = self.lookup(node.ident)
-        if var_type is None:
-            self.errors.append(f"Error: Variable '{node.ident}' no declarada.")
-        elif not isinstance(var_type, ArrayDecl):
-            self.errors.append(f"Error: '{node.ident}' no es un arreglo.")
+    if operator in numericOps:
+      if leftType == 'int' and rightType == 'int':
         return 'int'
-
-    def visit_ThisStmt(self, node: ThisStmt):
-        if self.current_class is None:
-            self.errors.append("Error: 'this' fuera de una clase.")
-        else:
-            return self.current_class.ident
-
-    def visit_SuperStmt(self, node: SuperStmt):
-        if self.current_class is None:
-            self.errors.append("Error: 'super' fuera de una clase.")
-            return
-        if self.current_class.super_class is None:
-            self.errors.append(f"Error: La clase '{self.current_class.ident}' no tiene superclase.")
-            return
-        super_class = self.lookup_class(self.current_class.super_class)
-        if super_class is None:
-            self.errors.append(f"Error: Superclase '{self.current_class.super_class}' no declarada.")
-            return
-        constructor = self.find_constructor(super_class, super_class.ident)
-        if constructor:
-            if len(node.args_list) != len(constructor.params):
-                self.errors.append(f"Error: El constructor de '{super_class.ident}' espera {len(constructor.params)} argumentos, pero se proporcionaron {len(node.args_list)}.")
-            else:
-                for arg_expr, param in zip(node.args_list, constructor.params):
-                    arg_type = self.visit(arg_expr)
-                    param_type = param.var_type
-                    if not self.check_assignment_compatibility(param_type, arg_type):
-                        self.errors.append(f"Error: El argumento de tipo '{arg_type}' no es compatible con el parámetro '{param.ident}' de tipo '{param_type}' en el constructor de '{super_class.ident}'.")
-        else:
-            self.errors.append(f"Error: No se encontró un constructor para la clase '{super_class.ident}'.")
-
-    def visit_PrivateStmt(self, node: PrivateStmt):
-        pass
-
-    def visit_PublicStmt(self, node: PublicStmt):
-        pass
-
-    def visit_CallExpr(self, node: CallExpr):
-        if node.object_name:
-            object_type = self.lookup(node.object_name)
-            if object_type is None:
-                self.errors.append(f"Error: Objeto '{node.object_name}' no declarado.")
-                return None
-            class_decl = self.lookup_class(object_type)
-            if class_decl is None:
-                self.errors.append(f"Error: Tipo de objeto '{object_type}' no es una clase válida.")
-                return None
-            method_decl = self.find_method(class_decl, node.ident)
-            if method_decl is None:
-                self.errors.append(f"Error: Método '{node.ident}' no encontrado en la clase '{object_type}'.")
-                return None
-            if len(node.args) != len(method_decl.params):
-                self.errors.append(f"Error: El método '{node.ident}' de la clase '{object_type}' espera {len(method_decl.params)} argumentos, pero se proporcionaron {len(node.args)}.")
-            else:
-                for arg_expr, param in zip(node.args, method_decl.params):
-                    arg_type = self.visit(arg_expr)
-                    param_type = param.var_type
-                    if not self.check_assignment_compatibility(param_type, arg_type):
-                        self.errors.append(f"Error: El argumento de tipo '{arg_type}' no es compatible con el parámetro '{param.ident}' de tipo '{param_type}' en el método '{node.ident}' de la clase '{object_type}'.")
-            return method_decl.return_type
-        else:
-            func_decl = self.lookup(node.ident)
-            if func_decl is None or not isinstance(func_decl, FuncDecl):
-                self.errors.append(f"Error: Función '{node.ident}' no declarada.")
-                return None
-            if len(node.args) != len(func_decl.params):
-                self.errors.append(f"Error: La función '{node.ident}' espera {len(func_decl.params)} argumentos, pero se proporcionaron {len(node.args)}.")
-            else:
-                for arg_expr, param in zip(node.args, func_decl.params):
-                    arg_type = self.visit(arg_expr)
-                    param_type = param.var_type
-                    if not self.check_assignment_compatibility(param_type, arg_type):
-                        self.errors.append(f"Error: El argumento de tipo '{arg_type}' no es compatible con el parámetro '{param.ident}' de tipo '{param_type}' en la función '{node.ident}'.")
-            return func_decl.return_type
-
-    def visit_ConstExpr(self, node: ConstExpr):
-        if isinstance(node.value, bool):
-            return 'bool'
-        elif node.value in {'TRUE', 'FALSE'}:
-            return 'bool'
-        elif isinstance(node.value, int):
-            return 'int'
-        elif isinstance(node.value, float):
-            return 'float'
-        elif isinstance(node.value, str):
-            return 'string'
-        else:
-            self.errors.append(f"Error: Tipo de constante desconocido '{node.value}'.")
-            return None
-
-    def visit_VarExpr(self, node: VarExpr):
-        var_type = self.lookup(node.ident)
-        if var_type is None:
-            self.errors.append(f"Error: Variable '{node.ident}' no declarada.")
-            return None
-        return var_type
-
-    def visit_ArrayLookupExpr(self, node: ArrayLookupExpr):
-        array_decl = self.lookup(node.ident)
-        if array_decl is None:
-            self.errors.append(f"Error: Arreglo '{node.ident}' no declarado.")
-            return None
-        if not isinstance(array_decl, ArrayDecl):
-            self.errors.append(f"Error: '{node.ident}' no es un arreglo.")
-            return None
-        index_type = self.visit(node.index)
-        if index_type != 'int':
-            self.errors.append(f"Error: El índice del arreglo debe ser de tipo 'int', se obtuvo '{index_type}'.")
-        return array_decl.var_type
-
-    def visit_VarAssignExpr(self, node: VarAssignExpr):
-        var_type = self.lookup(node.ident)
-        if var_type is None:
-            self.errors.append(f"Error: Variable '{node.ident}' no declarada.")
-            return None
-        expr_type = self.visit(node.expr)
-        if not self.check_assignment_compatibility(var_type, expr_type):
-            self.errors.append(
-                f"Error: No se puede asignar un valor de tipo '{expr_type}' a la variable '{node.ident}' de tipo '{var_type}'."
-            )
-        return var_type
-
-    def visit_ArrayAssignExpr(self, node: ArrayAssignExpr):
-        array_decl = self.lookup(node.ident)
-        if array_decl is None:
-            self.errors.append(f"Error: Arreglo '{node.ident}' no declarado.")
-            return None
-        if not isinstance(array_decl, ArrayDecl):
-            self.errors.append(f"Error: '{node.ident}' no es un arreglo.")
-            return None
-        index_type = self.visit(node.index)
-        if index_type != 'int':
-            self.errors.append(f"Error: El índice del arreglo debe ser de tipo 'int', se obtuvo '{index_type}'.")
-        expr_type = self.visit(node.expr)
-        elem_type = array_decl.var_type
-        if not self.check_assignment_compatibility(elem_type, expr_type):
-            self.errors.append(f"Error: No se puede asignar un valor de tipo '{expr_type}' al elemento del arreglo de tipo '{elem_type}'.")
-        return elem_type
-
-    def visit_ArraySizeExpr(self, node: ArraySizeExpr):
-        array_decl = self.lookup(node.ident)
-        if array_decl is None:
-            self.errors.append(f"Error: Arreglo '{node.ident}' no declarado.")
-            return None
-        if not isinstance(array_decl, ArrayDecl):
-            self.errors.append(f"Error: '{node.ident}' no es un arreglo.")
-            return None
-        return 'int'
-    
-    def visit_CompoundAssignExpr(self, node: CompoundAssignExpr):
-        var_name = node.ident
-        operator = node.operator
-        expr = node.expr
-
-        var_type = self.lookup(var_name)
-        if var_type is None:
-            self.errors.append(f"Error: Variable '{var_name}' no declarada.")
-            return None
-
-        expr_type = self.visit(expr)
-
-        bin_operator = operator[0] 
-        binary_expr = BinaryExpr(left=VarExpr(var_name), operand=bin_operator, right=expr)
-
-        result_type = self.visit(binary_expr)
-
-        if result_type is None:
-            self.errors.append(f"Error: Operación '{operator}' no soportada entre '{var_type}' y '{expr_type}'.")
-            return None
-
-        if not self.check_assignment_compatibility(var_type, result_type):
-            self.errors.append(f"Error: No se puede asignar un valor de tipo '{result_type}' a la variable '{var_name}' de tipo '{var_type}'.")
-            return None
-
-        return var_type
-
-    def visit_BinaryExpr(self, node: BinaryExpr):
-        left_type = self.visit(node.left)
-        right_type = self.visit(node.right)
-        result_type = self.check_binary_operation(node.operand, left_type, right_type)
-        if result_type is None:
-            self.errors.append(f"Error: Operación '{node.operand}' no soportada entre '{left_type}' y '{right_type}'.")
-        return result_type
-    
-    def visit_PrefixIncExpr(self, node: PrefixIncExpr):
-        if not isinstance(node.expr, VarExpr) and not isinstance(node.expr, ArrayLookupExpr):
-            self.errors.append("Error: El operador '++' debe aplicarse a una variable o elemento de arreglo.")
-            return None
-        var_type = self.visit(node.expr)
-        if var_type not in {'int', 'float'}:
-            self.errors.append(f"Error: El operador '++' no puede aplicarse a variables de tipo '{var_type}'.")
-            return None
-        return var_type
-
-    def visit_PrefixDecExpr(self, node: PrefixDecExpr):
-        if not isinstance(node.expr, VarExpr) and not isinstance(node.expr, ArrayLookupExpr):
-            self.errors.append("Error: El operador '--' debe aplicarse a una variable o elemento de arreglo.")
-            return None
-        var_type = self.visit(node.expr)
-        if var_type not in {'int', 'float'}:
-            self.errors.append(f"Error: El operador '--' no puede aplicarse a variables de tipo '{var_type}'.")
-            return None
-        return var_type
-
-    def visit_PostfixIncExpr(self, node: PostfixIncExpr):
-        if not isinstance(node.expr, VarExpr) and not isinstance(node.expr, ArrayLookupExpr):
-            self.errors.append("Error: El operador '++' debe aplicarse a una variable o elemento de arreglo.")
-            return None
-        var_type = self.visit(node.expr)
-        if var_type not in {'int', 'float'}:
-            self.errors.append(f"Error: El operador '++' no puede aplicarse a variables de tipo '{var_type}'.")
-            return None
-        return var_type
-
-    def visit_PostfixDecExpr(self, node: PostfixDecExpr):
-        if not isinstance(node.expr, VarExpr) and not isinstance(node.expr, ArrayLookupExpr):
-            self.errors.append("Error: El operador '--' debe aplicarse a una variable o elemento de arreglo.")
-            return None
-        var_type = self.visit(node.expr)
-        if var_type not in {'int', 'float'}:
-            self.errors.append(f"Error: El operador '--' no puede aplicarse a variables de tipo '{var_type}'.")
-            return None
-        return var_type
-    
-    def visit_ShortCircuitAndExpr(self, node: ShortCircuitAndExpr):
-        left_type = self.visit(node.left)
-        if left_type != 'bool':
-            self.errors.append(f"Error: La expresión izquierda de '&&' debe ser de tipo 'bool', se obtuvo '{left_type}'.")
-        right_type = self.visit(node.right)
-        if right_type != 'bool':
-            self.errors.append(f"Error: La expresión derecha de '&&' debe ser de tipo 'bool', se obtuvo '{right_type}'.")
-        return 'bool'
-
-    def visit_ShortCircuitOrExpr(self, node: ShortCircuitOrExpr):
-        left_type = self.visit(node.left)
-        if left_type != 'bool':
-            self.errors.append(f"Error: La expresión izquierda de '||' debe ser de tipo 'bool', se obtuvo '{left_type}'.")
-        right_type = self.visit(node.right)
-        if right_type != 'bool':
-            self.errors.append(f"Error: La expresión derecha de '||' debe ser de tipo 'bool', se obtuvo '{right_type}'.")
-        return 'bool'
-
-    def visit_UnaryExpr(self, node: UnaryExpr):
-        expr_type = self.visit(node.expr)
-        result_type = self.check_unary_operation(node.operand, expr_type)
-        if result_type is None:
-            self.errors.append(f"Error: Operación unaria '{node.operand}' no soportada para tipo '{expr_type}'.")
-        return result_type
-    
-    def visit_CastExpr(self, node: CastExpr):
-        expr_type = self.visit(node.expr)
-
-        target_type = node.target_type
-
-        if not self.is_cast_valid(expr_type, target_type):
-            self.errors.append(f"No se puede convertir de {expr_type} a {target_type}")
-
-        return target_type
-
-    def visit_GroupingExpr(self, node: GroupingExpr):
-        return self.visit(node.expr)
-
-    def visit_IntToFloatExpr(self, node: IntToFloatExpr):
-        expr_type = self.visit(node.expr)
-        if expr_type != 'int':
-            self.errors.append(f"Error: La conversión de 'int' a 'float' requiere un operando de tipo 'int', se obtuvo '{expr_type}'.")
+      elif leftType in {'int', 'float'} and rightType in {'int', 'float'}:
         return 'float'
+      else:
+        return None
+    elif operator in relationalOps:
+      if leftType in {'int', 'float'} and rightType in {'int', 'float'}:
+        return 'bool'
+      else:
+        return None
+    elif operator in logicalOps:
+      if leftType == 'bool' and rightType == 'bool':
+        return 'bool'
+      else:
+        return None
+    else:
+      return None
 
-    def visit_ClassDecl(self, node: ClassDecl):
-        class_name = node.ident
-        if class_name in self.symtable.maps[0]:
-            self.errors.append(f"Error: Clase '{class_name}' ya declarada en este ámbito.")
+  def checkUnaryOperation(self, operator, exprType):
+    if operator == '!':
+      if exprType == 'bool':
+        return 'bool'
+      else:
+        return None
+    elif operator in {'+', '-'}:
+      if exprType in {'int', 'float'}:
+        return exprType
+      else:
+        return None
+    elif operator in {'++', '--'}:
+      if exprType in {'int', 'float'}:
+        return exprType
+      else:
+        return None
+    else:
+      return None
+
+  def checkMainFunction(self):
+    mainFunc = self.functionsDeclared.get('main')
+    if mainFunc is None:
+      self.errors.append(f"Error: main function not declared")
+    else:
+      if mainFunc.return_type != 'int':
+        self.errors.append(f"Error: main function must return int")
+      if len(mainFunc.params) > 0:
+        self.errors.append(f"Error: main function must not have parameters")
+
+  def isCastValid(self, fromType: str, toType: str) -> bool:
+    validCasts = {
+      'int': [float],
+      'float': [int],
+    }
+    return toType in validCasts.get(fromType, []) or fromType == toType
+
+  # Visit methods
+
+  @multimethod
+  def visit(self, node: Program):
+    for stmt in node.stmts:
+      self.visit(stmt)
+    # Check if main function is declared
+    self.checkMainFunction()
+
+  @multimethod
+  def visit(self, node: FuncDecl):
+    funcName = node.ident
+
+    # Check if function is already declared
+    if funcName in self.symtable.maps[0]:
+      self.errors.append(f"Error: Function {funcName} already declared")
+      return
+    else:
+      # If function is not declared, add it to the symbol table
+      self.symtable[funcName] = node
+      self.functionsDeclared[funcName] = node
+
+      # Check if function return type is valid
+      self.currentFunction = node
+      self.symtable = self.symtable.new_child()
+
+      # Add parameters to the symbol table
+      for param in node.params:
+        if param.ident in self.symtable.maps[0]:
+          self.errors.append(f"Error: Parameter {param.ident} already declared in function {funcName}")
         else:
-            self.symtable[class_name] = node
-        self.current_class = node
-        self.symtable = self.symtable.new_child()
-        for member in node.body:
-            self.visit(member)
-        self.symtable = self.symtable.parents
-        self.current_class = None
+          self.symtable[param.ident] = param.var_type
 
+      for stmt in node.body:
+        self.visit(stmt)
+
+      self.symtable = self.symtable.parents
+      self.currentFunction = None
+      
+  @multimethod
+  def visit(self, node: NullExpr):
+    return 'null'
+
+  @multimethod
+  def visit(self, node: VarDecl):
+    varName = node.ident
+    if varName in self.symtable.maps[0]:
+      self.error.append(f"Error: Variable {varName} already declared")
+    else:
+      self.symtable[varName] = node.var_type
+    if node.expr:
+      exprType = self.visit(node.expr)
+      if not self.checkAssignmentCompatibility(node.var_type, exprType):
+        self.errors.append(f"Error: not able to assign {exprType} to variable {varName} of type {node.var_type}")
+
+  @multimethod
+  def visit(self, node: ArrayDecl):
+    arrayName = node.ident
+    if arrayName in self.symtable.maps[0]:
+      self.errors.append(f"Error: Array {arrayName} already declared")
+    else:
+      self.symtable[arrayName] = node
+    sizeType = self.visit(node.size)
+    if sizeType != 'int':
+      self.errors.append(f"Error: size of array {arrayName} must be of type int, found {sizeType}")
+
+  @multimethod
+  def visit(self, node: ObjectDecl):
+    objectName = node.instance_name
+    className = node.class_type
+    if objectName in self.symtable.maps[0]:
+      self.errors.append(f"Error: Object {objectName} already declared")
+    else:
+      self.symtable[objectName] = className
+    classDecl = self.lookupClass(className)
+    if classDecl is None:
+      self.errors.append(f"Error: Class {className} not declared")
+    else:
+      if node.args:
+        constructor = self.findConstructor(classDecl, className)
+        if constructor:
+          if len(node.args) != len(constructor.params):
+            self.errors.append(f"Error: The constructor of the class {className} expects {len(constructor.params)} arguments, found {len(node.args)}")
+          else:
+            for argsExpr, param in zip(node.args, constructor.params):
+              argType = self.visit(argsExpr)
+              paramType = param.var_type
+              if not self.checkAssignmentCompatibility(paramType, argType):
+                self.errors.append(f"Error: Argument of type {argType} cannot be assigned to parameter of type {paramType}")
+        else:
+          self.errors.append(f"Error: Constructor for class {className} not found")
+
+  @multimethod
+  def visit(self, node: ExprStmt):
+    self.visit(node.expr)
+
+
+  @multimethod
+  def visit(self, node: IfStmt):
+    condType = self.visit(node.cond)
+    if condType != 'bool':
+      self.errors.append(f"Error: The 'if' condition must be of type 'bool', found '{condType}'")
+    self.symtable = self.symtable.new_child()
+    for stmt in node.then_stmt:
+      self.visit(stmt)
+    self.symtable = self.symtable.parents
+    if node.else_stmt:
+      self.symtable = self.symtable.new_child()
+      if isinstance(node.else_stmt, list):
+        for stmt in node.else_stmt:
+          self.visit(stmt)
+      else:
+        self.visit(node.elseStmt)
+      self.symtable = self.symtable.parents
+
+  @multimethod
+  def visit(self, node: ReturnStmt):
+    if self.currentFunction is None:
+      self.errors.append("Error: 'return' used outside a function")
+      return
+    if node.expr:
+      returnType = self.visit(node.expr)
+    else:
+      returnType = 'void'
+    expectedType = self.currentFunction.return_type
+    if returnType != expectedType:
+      self.errors.append(f"Error: Function '{self.currentFunction.ident}' should return '{expectedType}', but returns '{returnType}'")
+
+  @multimethod
+  def visit(self, node: BreakStmt):
+    if self.loopNesting == 0:
+      self.errors.append("Error: 'break' used outside of a loop")
+
+  @multimethod
+  def visit(self, node: ContinueStmt):
+    if self.loopNesting == 0:
+      self.errors.append("Error: 'continue' used outside of a loop")
+
+  @multimethod
+  def visit(self, node: WhileStmt):
+    condType = self.visit(node.cond)
+    if condType != 'bool':
+      self.errors.append(f"Error: The 'while' condition must be of type 'bool', found '{condType}'")
+    self.loopNesting += 1
+    self.symtable = self.symtable.new_child()
+    for stmt in node.body:
+      self.visit(stmt)
+    self.symtable = self.symtable.parents
+    self.loopNesting -= 1
+
+  @multimethod
+  def visit(self, node: ForStmt):
+    self.loopNesting += 1
+    self.symtable = self.symtable.new_child()
+
+    if node.initialization:
+      self.visit(node.initialization)
+
+    if node.condition:
+      condType = self.visit(node.condition)
+      if condType != 'bool':
+        self.errors.append(f"Error: The 'for' condition must be of type 'bool', found '{condType}'")
+
+    if node.increment:
+      self.visit(node.increment)
+
+    for stmt in node.body:
+      self.visit(stmt)
+
+    self.symtable = self.symtable.parents
+    self.loopNesting -= 1
+
+  @multimethod
+  def visit(self, node: PrintStmt):
+    formatSpecifiers = re.findall(r'%[-+#0]*\d*(?:\.\d+)?[diuoxXfFeEgGaAcs]', node.format_string)
+    num_specifers = len(formatSpecifiers)
+    num_args = len(node.args_list)
+    
+    if num_specifers != num_args:
+      self.errors.append(f"Error: Expected {num_specifers} arguments, found {num_args}")
+      return
+    
+    specifier_to_type = {
+      'd': 'int', 'i': 'int', 'u': 'int', 'o': 'int', 'x': 'int',
+      'X': 'int', 'f': 'float', 'F': 'float', 'e': 'float', 'E': 'float',
+      'g': 'float', 'G': 'float', 'a': 'float', 'A': 'float', 'c': 'int',
+      's': 'string'
+    }
+    
+    for i, (specifier,arg) in enumerate(zip(formatSpecifiers, node.args_list)):
+      specifier_key = specifier[-1]
+      expected_type = specifier_to_type.get(specifier_key, None)
+      
+      if expected_type is None:
+        self.errors.append(f"Error: Invalid format specifier '{specifier}'")
+        continue
+      
+      arg_type = self.visit(arg)
+      
+      if arg_type != expected_type:
+        self.errors.append(f"Error: Argument {i+1} must be of type '{expected_type}', found '{arg_type}'")
+      
+      
+      
+    return 'void'
+      
+  
+  @multimethod
+  def visit(self, node: SPrintStmt):
+    buffer_name = node.buffer.ident
+    if buffer_name not in self.symtable.maps[0]:
+      self.errors.append(f"Error: Buffer '{buffer_name}' not declared")
+      return
+    bufferType = self.lookup(buffer_name)
+    if bufferType != 'string':
+      self.errors.append(f"Error: Buffer '{buffer_name}' must be of type 'string', found '{bufferType}'")
+    formatSpecifiers = re.findall(r'%[-+#0]*\d*(?:\.\d+)?[diuoxXfFeEgGaAcs]', node.format_string)
+    num_specifiers = len(formatSpecifiers)
+    num_args = len(node.args_list)
+    if num_specifiers != num_args:
+      self.errors.append(f"Error: Expected {num_specifiers} arguments, found {num_args}")
+      return
+    specifier_to_type = {
+      'd': 'int', 'i': 'int', 'u': 'int', 'o': 'int', 'x': 'int',
+      'X': 'int', 'f': 'float', 'F': 'float', 'e': 'float', 'E': 'float',
+      'g': 'float', 'G': 'float', 'a': 'float', 'A': 'float', 'c': 'int',
+      's': 'string'
+    }
+    for i, (specifier, arg) in enumerate(zip(formatSpecifiers, node.args_list)):
+      specifier_key = specifier[-1]
+      expected_type = specifier_to_type.get(specifier_key, None)
+      if expected_type is None:
+        self.errors.append(f"Error: Invalid format specifier '{specifier}'")
+        continue
+      arg_type = self.visit(arg)
+      if arg_type != expected_type:
+        self.errors.append(f"Error: Argument {i+1} must be of type '{expected_type}', found '{arg_type}'")
+    return 'void'
+    
+  @multimethod
+  def visit(self, node: SizeStmt):
+    varType = self.lookup(node.ident)
+    if varType is None:
+      self.errors.append(f"Error: Variable '{node.ident}' is not declared")
+    elif not isinstance(varType, ArrayDecl):
+      self.errors.append(f"Error: '{node.ident}' is not an array")
+    return 'int'
+
+  @multimethod
+  def visit(self, node: ThisStmt):
+    if self.currentClass is None:
+      self.errors.append("Error: 'this' used outside of a class")
+    else:
+      return self.currentClass.ident
+
+  @multimethod
+  def visit(self, node: SuperStmt):
+    if self.currentClass is None:
+      self.errors.append("Error: 'super' used outside of a class")
+      return
+    if self.currentClass.super_class is None:
+      self.errors.append(f"Error: Class '{self.currentClass.ident}' has no superclass")
+      return
+    superClass = self.lookupClass(self.currentClass.super_class)
+    if superClass is None:
+      self.errors.append(f"Error: Superclass '{self.currentClass.super_class}' is not declared")
+      return
+    constructor = self.findConstructor(superClass, superClass.ident)
+    if constructor:
+      if len(node.args_list) != len(constructor.params):
+        self.errors.append(f"Error: The constructor of '{superClass.ident}' expects {len(constructor.params)} arguments, found {len(node.args_list)}")
+      else:
+        for argExpr, param in zip(node.args_list, constructor.params):
+          argType = self.visit(argExpr)
+          paramType = param.var_type
+          if not self.checkAssignmentCompatibility(paramType, argType):
+            self.errors.append(f"Error: Argument of type '{argType}' cannot be assigned to parameter '{param.ident}' of type '{paramType}'")
+    else:
+      self.errors.append(f"Error: No constructor found for class '{superClass.ident}'")
+
+  @multimethod
+  def visit(self, node: CallExpr):
+    if node.object_name:
+      objectType = self.lookup(node.object_name)
+      if objectType is None:
+        self.errors.append(f"Error: Object '{node.object_name}' is not declared")
+        return None
+      classDecl = self.lookupClass(objectType)
+      if classDecl is None:
+        self.errors.append(f"Error: Object type '{objectType}' is not a valid class")
+        return None
+      methodDecl = self.find_method(classDecl, node.ident)
+      if methodDecl is None:
+        self.errors.append(f"Error: Method '{node.ident}' not found in class '{objectType}'")
+        return None
+      if len(node.args) != len(methodDecl.params):
+        self.errors.append(f"Error: Method '{node.ident}' in class '{objectType}' expects {len(methodDecl.params)} arguments, found {len(node.args)}")
+      else:
+        for argExpr, param in zip(node.args, methodDecl.params):
+          argType = self.visit(argExpr)
+          paramType = param.var_type
+          if not self.checkAssignmentCompatibility(paramType, argType):
+            self.errors.append(f"Error: Argument of type '{argType}' cannot be assigned to parameter '{param.ident}' of type '{paramType}' in method '{node.ident}'")
+      return methodDecl.return_type
+    else:
+      funcDecl = self.lookup(node.ident)
+      if funcDecl is None or not isinstance(funcDecl, FuncDecl):
+        self.errors.append(f"Error: Function '{node.ident}' is not declared")
+        return None
+      if len(node.args) != len(funcDecl.params):
+        self.errors.append(f"Error: Function '{node.ident}' expects {len(funcDecl.params)} arguments, found {len(node.args)}")
+      else:
+        for argExpr, param in zip(node.args, funcDecl.params):
+          argType = self.visit(argExpr)
+          paramType = param.var_type
+          if not self.checkAssignmentCompatibility(paramType, argType):
+            self.errors.append(f"Error: Argument of type '{argType}' cannot be assigned to parameter '{param.ident}' of type '{paramType}' in function '{node.ident}'")
+      return funcDecl.return_type
+
+  @multimethod
+  def visit(self, node: ConstExpr):
+    if isinstance(node.value, bool):
+      return 'bool'
+    elif node.value in {'TRUE', 'FALSE'}:
+      return 'bool'
+    elif isinstance(node.value, int):
+      return 'int'
+    elif isinstance(node.value, float):
+      return 'float'
+    elif isinstance(node.value, str):
+      return 'string'
+    else:
+      self.errors.append(f"Error: Unknown constant type '{node.value}'")
+      return None
+
+  @multimethod
+  def visit(self, node: VarExpr):
+    varType = self.lookup(node.ident)
+    if varType is None:
+      self.errors.append(f"Error: Variable '{node.ident}' not declared")
+      return None
+    return varType
+
+  @multimethod
+  def visit(self, node: ArrayLookupExpr):
+    arrayDecl = self.lookup(node.ident)
+    if arrayDecl is None:
+      self.errors.append(f"Error: Array '{node.ident}' not declared")
+      return None
+    if not isinstance(arrayDecl, ArrayDecl):
+      self.errors.append(f"Error: '{node.ident}' is not an array")
+      return None
+    indexType = self.visit(node.index)
+    if indexType != 'int':
+      self.errors.append(f"Error: Array index must be of type 'int', found '{indexType}'")
+    return arrayDecl.var_type
+
+  @multimethod
+  def visit(self, node: VarAssignExpr):
+    varType = self.lookup(node.ident)
+    if varType is None:
+      self.errors.append(f"Error: Variable '{node.ident}' not declared")
+      return None
+    exprType = self.visit(node.expr)
+    if not self.checkAssignmentCompatibility(varType, exprType):
+      self.errors.append(f"Error: Cannot assign value of type '{exprType}' to variable '{node.ident}' of type '{varType}'")
+    return varType
+
+  @multimethod
+  def visit(self, node: ArrayAssignExpr):
+    arrayDecl = self.lookup(node.ident)
+    if arrayDecl is None:
+      self.errors.append(f"Error: Array '{node.ident}' not declared")
+      return None
+    if not isinstance(arrayDecl, ArrayDecl):
+      self.errors.append(f"Error: '{node.ident}' is not an array")
+      return None
+    indexType = self.visit(node.index)
+    if indexType != 'int':
+      self.errors.append(f"Error: Array index must be of type 'int', found '{indexType}'")
+    exprType = self.visit(node.expr)
+    elemType = arrayDecl.var_type
+    if not self.checkAssignmentCompatibility(elemType, exprType):
+      self.errors.append(f"Error: Cannot assign value of type '{exprType}' to array element of type '{elemType}'")
+    return elemType
+
+  @multimethod
+  def visit(self, node: ArraySizeExpr):
+    arrayDecl = self.lookup(node.ident)
+    if arrayDecl is None:
+      self.errors.append(f"Error: Array '{node.ident}' not declared")
+      return None
+    if not isinstance(arrayDecl, ArrayDecl):
+      self.errors.append(f"Error: '{node.ident}' is not an array")
+      return None
+    return 'int'
+
+  @multimethod
+  def visit(self, node: CompoundAssignExpr):
+    varName = node.ident
+    operator = node.operator
+    expr = node.expr
+
+    varType = self.lookup(varName)
+    if varType is None:
+      self.errors.append(f"Error: Variable '{varName}' not declared")
+      return None
+
+    exprType = self.visit(expr)
+    binOperator = operator[0]
+    binaryExpr = BinaryExpr(left=VarExpr(varName), operand=binOperator, right=expr)
+    resultType = self.visit(binaryExpr)
+
+    if resultType is None:
+      self.errors.append(f"Error: Operation '{operator}' not supported between '{varType}' and '{exprType}'")
+      return None
+
+    if not self.checkAssignmentCompatibility(varType, resultType):
+      self.errors.append(f"Error: Cannot assign value of type '{resultType}' to variable '{varName}' of type '{varType}'")
+    return varType
+
+  @multimethod
+  def visit(self, node: BinaryExpr):
+    leftType = self.visit(node.left)
+    rightType = self.visit(node.right)
+    resultType = self.checkBinaryOperation(node.operand, leftType, rightType)
+    if resultType is None:
+      self.errors.append(f"Error: Operation '{node.operand}' not supported between '{leftType}' and '{rightType}'")
+    return resultType
+
+  @multimethod
+  def visit(self, node: PrefixIncExpr):
+    if not isinstance(node.expr, VarExpr) and not isinstance(node.expr, ArrayLookupExpr):
+      self.errors.append("Error: Operator '++' must be applied to a variable or array element")
+      return None
+    varType = self.visit(node.expr)
+    if varType not in {'int', 'float'}:
+      self.errors.append(f"Error: Operator '++' cannot be applied to variables of type '{varType}'")
+    return varType
+
+  @multimethod
+  def visit(self, node: PrefixDecExpr):
+    if not isinstance(node.expr, VarExpr) and not isinstance(node.expr, ArrayLookupExpr):
+      self.errors.append("Error: Operator '--' must be applied to a variable or array element")
+      return None
+    varType = self.visit(node.expr)
+    if varType not in {'int', 'float'}:
+      self.errors.append(f"Error: Operator '--' cannot be applied to variables of type '{varType}'")
+    return varType
+
+  @multimethod
+  def visit(self, node: PostfixIncExpr):
+    if not isinstance(node.expr, VarExpr) and not isinstance(node.expr, ArrayLookupExpr):
+      self.errors.append("Error: Operator '++' must be applied to a variable or array element")
+      return None
+    varType = self.visit(node.expr)
+    if varType not in {'int', 'float'}:
+      self.errors.append(f"Error: Operator '++' cannot be applied to variables of type '{varType}'")
+    return varType
+
+  @multimethod
+  def visit(self, node: PostfixDecExpr):
+    if not isinstance(node.expr, VarExpr) and not isinstance(node.expr, ArrayLookupExpr):
+      self.errors.append("Error: Operator '--' must be applied to a variable or array element")
+      return None
+    varType = self.visit(node.expr)
+    if varType not in {'int', 'float'}:
+      self.errors.append(f"Error: Operator '--' cannot be applied to variables of type '{varType}'")
+    return varType
+
+  @multimethod
+  def visit(self, node: ShortCircuitAndExpr):
+    leftType = self.visit(node.left)
+    if leftType != 'bool':
+      self.errors.append(f"Error: Left expression of '&&' must be of type 'bool', found '{leftType}'")
+    rightType = self.visit(node.right)
+    if rightType != 'bool':
+      self.errors.append(f"Error: Right expression of '&&' must be of type 'bool', found '{rightType}'")
+    return 'bool'
+
+  @multimethod
+  def visit(self, node: ShortCircuitOrExpr):
+    leftType = self.visit(node.left)
+    if leftType != 'bool':
+      self.errors.append(f"Error: Left expression of '||' must be of type 'bool', found '{leftType}'")
+    rightType = self.visit(node.right)
+    if rightType != 'bool':
+      self.errors.append(f"Error: Right expression of '||' must be of type 'bool', found '{rightType}'")
+    return 'bool'
+
+  @multimethod
+  def visit(self, node: UnaryExpr):
+    exprType = self.visit(node.expr)
+    resultType = self.checkUnaryOperation(node.operand, exprType)
+    if resultType is None:
+      self.errors.append(f"Error: Unary operation '{node.operand}' not supported for type '{exprType}'")
+    return resultType
+
+  @multimethod
+  def visit(self, node: CastExpr):
+    exprType = self.visit(node.expr)
+    targetType = node.target_type
+    if not self.isCastValid(exprType, targetType):
+      self.errors.append(f"Error: Cannot cast from {exprType} to {targetType}")
+    return targetType
+
+  @multimethod
+  def visit(self, node: GroupingExpr):
+    return self.visit(node.expr)
+
+  @multimethod
+  def visit(self, node: IntToFloatExpr):
+    exprType = self.visit(node.expr)
+    if exprType != 'int':
+      self.errors.append(f"Error: Conversion from 'int' to 'float' requires an operand of type 'int', found '{exprType}'")
+    return 'float'
+
+  @multimethod
+  def visit(self, node: ClassDecl):
+    className = node.ident
+    if className in self.symtable.maps[0]:
+      self.errors.append(f"Error: Class '{className}' already declared in this scope")
+    else:
+      self.symtable[className] = node
+    self.currentClass = node
+    self.symtable = self.symtable.new_child()
+    for member in node.body:
+      self.visit(member)
+    self.symtable = self.symtable.parents
+    self.currentClass = None

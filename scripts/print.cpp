@@ -1,13 +1,13 @@
-string format = "%d %f %s %c";
-
+// Prueba de printf con diferentes tipos
 int main() {
-    int intValue = 42;
-    float floatValue = 3.14;
-    string stringValue = "Hello, world!";
+    int edad = 25;
+    float promedio = 89.5;
+    string nombre = "Alice";
 
-    // Caso 1: Uso correcto de printf con varios especificadores de formato
-    printf("%d %f %s", intValue, floatValue, stringValue);
-    //   printf("hola"); Caso 5: Uso correcto con variable de formato
- 
+    // Correcto: número de especificadores coincide con los argumentos
+    printf("Edad: %d, Promedio: %f, Nombre: %s\n", edad, promedio, nombre);
+    // Correcto: especificador de cadena con string
+    printf("Hola, %s\n", nombre);
+
     return 0;
 }
