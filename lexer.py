@@ -11,9 +11,9 @@ class Lexer(sly.Lexer):
     tokens = {
         #Keywords
         VOID, BOOL, INT, FLOAT, STRING , IF, ELSE, WHILE,
-        RETURN, CONTINUE, SIZE, NEW, CLASS, PRINTF,
+        RETURN, CONTINUE, SIZE, NEW, CLASS, PRINTF, SPRINTF,
         THIS, SUPER, PRIVATE, PUBLIC, BREAK, TRUE, FALSE,
-        FOR,
+        FOR, NULL,
 
         #Operators
         AND, OR, NOT,
@@ -82,6 +82,7 @@ class Lexer(sly.Lexer):
     IDENT['new'] = NEW
     IDENT['class'] = CLASS
     IDENT['printf'] = PRINTF
+    IDENT['sprintf'] = SPRINTF
     IDENT['this'] = THIS
     IDENT['super'] = SUPER
     IDENT['private'] = PRIVATE
@@ -90,6 +91,7 @@ class Lexer(sly.Lexer):
     IDENT['false'] = FALSE
     IDENT['string'] = STRING
     IDENT['for'] = FOR
+    IDENT['null'] = NULL
 
     #Relational Operators
     EQ = r'=='
@@ -102,7 +104,7 @@ class Lexer(sly.Lexer):
     OR = r'\|\|'
     NOT = r'!'
     INCREMENT = r'\+\+'
-    DECREMENT = r'\-\-'
+    DECREMENT = r'--'
     PLUS_ASSIGN = r'\+='
     MINUS_ASSIGN = r'\-='
     MULT_ASSIGN = r'\*='

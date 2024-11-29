@@ -12,10 +12,11 @@ class Parser(sly.Parser):
     tokens = Lexer.tokens
 
     precedence = (
+      ('right', 'INCREMENT', 'DECREMENT'), 
       ('right', 'CAST'),
       ('nonassoc', IFX),
       ('nonassoc', ELSE),
-      ('right', UNARY, '!'),
+      ('right', '!', 'NOT', '+', '-'),
       ('left', 'PLUS_ASSIGN', 'MINUS_ASSIGN', 'MULT_ASSIGN', 'DIV_ASSIGN'),
     ) 
 
@@ -23,7 +24,7 @@ class Parser(sly.Parser):
         self.debugging = True
 
     # Reglas de gramática
-
+    
     # Programa inicial: lista de declaraciones
     @_("decl_list")
     def program(self, p):
@@ -55,7 +56,7 @@ class Parser(sly.Parser):
     def class_body(self, p):
         return [p.class_member] + p.class_body
 
-    @_("")
+    @_("empty")
     def class_body(self, p):
         return []
 
@@ -102,43 +103,54 @@ class Parser(sly.Parser):
         return ArrayDecl(ident=p.IDENT, var_type=p.type_spec, size=p.INTLIT)
 
     # Sentencia compuesta (bloque de código)
-    @_("'{' local_decls stmt_list '}'")
+    @_("'{' block_items '}'")
     def compound_stmt(self, p):
-        return list(p.local_decls) + list(p.stmt_list)
-
-    # Declaraciones locales
-    @_("var_decl local_decls")
-    def local_decls(self, p):
-        return [p.var_decl] + p.local_decls
-
-    @_("empty")
-    def local_decls(self, p):
-        return []
-
-    # Lista de sentencias
-    @_("empty")
-    def stmt_list(self, p):
-        return []
-
-    @_("stmt stmt_list")
-    def stmt_list(self, p):
-        return [p.stmt] + p.stmt_list
-
+        return p.block_items
+      
+    @_("block_items block_item")
+    def block_items(self, p):
+        return p.block_items + [p.block_item]
+      
+    @_("block_item")
+    def block_items(self, p):
+        return [p.block_item]
+      
+    @_("stmt", "var_decl")
+    def block_item(self, p):
+        return p[0]
+  
     # Sentencias posibles
     @_("expr_stmt", "compound_stmt", "if_stmt", "return_stmt", "while_stmt",
-       "break_stmt", "continue_stmt", "print_stmt", "private_stmt",
-       "public_stmt", "super_stmt", "object_decl", "for_stmt")
+       "break_stmt", "continue_stmt", "super_stmt",
+       "object_decl", "for_stmt", "this_stmt", "printf_stmt", "sprintf_stmt")
     def stmt(self, p):
         return p[0]
+      
+    @_("PRINTF '(' STRINGLIT ',' args_list ')' ';'")
+    def printf_stmt(self, p):
+        return PrintStmt(p.STRINGLIT, p.args_list)
+      
+    @_("PRINTF '(' STRINGLIT ')' ';'")
+    def printf_stmt(self, p):
+        return PrintStmt(p.STRINGLIT, [])
+      
+    @_("SPRINTF '(' expr ',' STRINGLIT ',' args_list ')' ';'")
+    def sprintf_stmt(self, p):
+        return SPrintStmt(p.expr, p.STRINGLIT, p.args_list)
+    
+    @_("SPRINTF '(' expr ',' STRINGLIT ')' ';'")
+    def sprintf_stmt(self, p):
+        return SPrintStmt(p.expr, p.STRINGLIT, [])
+
 
     # Sentencia 'for'
-    @_("FOR '(' for_init ';' for_cond ';' for_incr ')' stmt")
+    @_("FOR '(' for_init ';' for_cond ';' for_incr ')' compound_stmt")
     def for_stmt(self, p):
         return ForStmt(
             initialization=p.for_init,
             condition=p.for_cond,
             increment=p.for_incr,
-            body=p.stmt
+            body=p.compound_stmt
         )
 
     # Ajuste en 'for_init' para usar 'var_decl_no_semi'
@@ -149,7 +161,7 @@ class Parser(sly.Parser):
     @_("assignment_expr")
     def for_init(self, p):
         return p.assignment_expr
-
+      
     @_("empty")
     def for_init(self, p):
         return None
@@ -162,6 +174,7 @@ class Parser(sly.Parser):
     @_("type_spec IDENT '=' assignment_expr")
     def var_decl_no_semi(self, p):
         return VarDecl(p.type_spec, p.IDENT, p.assignment_expr)
+      
 
     @_("type_spec IDENT '[' expr ']'")
     def var_decl_no_semi(self, p):
@@ -193,6 +206,7 @@ class Parser(sly.Parser):
     @_("assignment_expr ';'")
     def expr_stmt(self, p):
         return ExprStmt(p.assignment_expr)
+      
 
     # Expresiones de asignación
     @_("IDENT '=' assignment_expr",
@@ -209,7 +223,15 @@ class Parser(sly.Parser):
     @_("expr")
     def assignment_expr(self, p):
         return p.expr
-
+      
+    @_("NULL")
+    def primary_expr(self, p):
+        return NullExpr() 
+      
+    @_("IDENT '[' expr ']' '=' assignment_expr")
+    def assignment_expr(self, p):
+        return ArrayAssignExpr(p.IDENT, p.expr, p.assignment_expr)
+      
     # Sentencia 'if'
     @_("IF '(' expr ')' stmt %prec IFX")
     def if_stmt(self, p):
@@ -218,15 +240,6 @@ class Parser(sly.Parser):
     @_("IF '(' expr ')' stmt ELSE stmt")
     def if_stmt(self, p):
         return IfStmt(cond=p.expr, then_stmt=p.stmt0, else_stmt=p.stmt1)
-
-    # Sentencias 'private' y 'public'
-    @_("PRIVATE ':' stmt")
-    def private_stmt(self, p):
-        return PrivateStmt(p.stmt)
-
-    @_("PUBLIC ':' stmt")
-    def public_stmt(self, p):
-        return PublicStmt(p.stmt)
 
     # Sentencia 'return'
     @_("RETURN ';'")
@@ -265,10 +278,7 @@ class Parser(sly.Parser):
         return [p.expr]
 
     # Sentencia 'printf'
-    @_("PRINTF '(' expr ')' ';'")
-    def print_stmt(self, p):
-        return PrintStmt(p.expr)
-
+      
     # Sentencia 'this'
     @_("THIS ';'")
     def this_stmt(self, p):
@@ -282,6 +292,8 @@ class Parser(sly.Parser):
     @_("type_spec IDENT '=' assignment_expr ';'")
     def var_decl(self, p):
         return VarDecl(p.type_spec, p.IDENT, p.assignment_expr)
+      
+    
 
     @_("type_spec IDENT '[' expr ']' ';'")
     def var_decl(self, p):
@@ -310,7 +322,7 @@ class Parser(sly.Parser):
     # Operadores lógicos 'OR'
     @_("logical_or_expr OR logical_and_expr")
     def logical_or_expr(self, p):
-        return BinaryExpr(p.logical_or_expr, p.OR, p.logical_and_expr)
+        return ShortCircuitOrExpr(p.logical_or_expr, p.logical_and_expr)
 
     @_("logical_and_expr")
     def logical_or_expr(self, p):
@@ -319,7 +331,7 @@ class Parser(sly.Parser):
     # Operadores lógicos 'AND'
     @_("logical_and_expr AND equality_expr")
     def logical_and_expr(self, p):
-        return BinaryExpr(p.logical_and_expr, p.AND, p.equality_expr)
+        return ShortCircuitAndExpr(p.logical_and_expr, p.equality_expr)
 
     @_("equality_expr")
     def logical_and_expr(self, p):
@@ -368,19 +380,37 @@ class Parser(sly.Parser):
     def multiplicative_expr(self, p):
         return p.unary_expr
 
-    # Operadores unarios
-    @_("'-' unary_expr %prec UNARY",
-       "'!' unary_expr %prec UNARY",
-       "'+' unary_expr %prec UNARY",
-       "INCREMENT unary_expr %prec UNARY",
-       "DECREMENT unary_expr %prec UNARY",
-       "NOT unary_expr %prec UNARY")
+    @_('INCREMENT unary_expr',
+       'DECREMENT unary_expr',
+       "'+' unary_expr",
+       "'-' unary_expr",
+       "'!' unary_expr",
+       "NOT unary_expr")
     def unary_expr(self, p):
-        return UnaryExpr(p[0], p.unary_expr)
+        if p[0] == '++':
+            return PrefixIncExpr(p.unary_expr)
+        elif p[0] == '--':
+            return PrefixDecExpr(p.unary_expr)
+        else:
+            return UnaryExpr(p[0], p.unary_expr)
 
-    @_("primary_expr")
+    @_("postfix_expr")
     def unary_expr(self, p):
+        return p.postfix_expr
+
+    # Expresiones postfijas
+    @_('postfix_expr INCREMENT',
+       'postfix_expr DECREMENT')
+    def postfix_expr(self, p):
+        if p[1] == '++':
+            return PostfixIncExpr(p.postfix_expr)
+        elif p[1] == '--':
+            return PostfixDecExpr(p.postfix_expr)
+
+    @_('primary_expr')
+    def postfix_expr(self, p):
         return p.primary_expr
+
     
     @_("'(' type_spec ')' unary_expr %prec CAST")
     def unary_expr(self, p):
