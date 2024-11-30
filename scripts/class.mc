@@ -5,7 +5,7 @@ class Animal {
     public:
         Animal() {
             edad = 0;
-            peso = 0;
+            peso = 0.0;
         }
 
         void setEdad(int e) { edad = e; }

@@ -429,6 +429,9 @@ class MakeDot(Visitor):
     return name
   
   def generate_dot(self):
-    self.dot.save('ast.dot')
-    self.dot.render('ast',format='png', cleanup=False)
+    print(self.dot.source)
   
+  def generate_dot_png(self):
+    #Generar el archivo png en el escritorio del usuario en formato png
+    
+    self.dot.render('ast',format='png', cleanup=False, view=True)
