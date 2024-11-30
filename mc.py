@@ -6,20 +6,16 @@ from tabulate import tabulate
 """
     print("optional arguments:")
     print("-h, --help             show this help message and exit")
-    print("-d, --debug            Generate assembly with extra information (for debugging purposes)")
-    print("-o OUT, --out OUT      File name to store generated executable")
     print("-l, --lex              Store output of lexer")
     print("-a, --AST              Display AST")
     print("-D, --dot              Generate AST graph as DOT format")
     print("-p, --png              Generate AST graph as png format")
-    print("-I, --ir               Dump the generated Intermediate representation")
     print("--sym                  Dump the symbol table") #the Checker one
-    print("-S, --asm              Store the generated assembly file")
     print("-R, --exec             Execute the generated program")
 """
 def menu():
     print("\t\t\t\n ################################ Miguel Cano and Nicolas Vega MiniC++ Compiler ################################  \n")
-    print("usage: mc.py [-h] [-d] [-o OUT] [-l] [-a] [-D] [-p] [-I] [--sym] [-S] [-R] input\n")
+    print("usage: mc.py [-h] [-l] [-a] [-D] [-p] [--sym] [-R] input\n")
 
     print("Compiler for MiniC++ programs\n")
 
@@ -73,6 +69,12 @@ def main(argv):
                     expr.accept(dot)
                 dot.generate_dot()
                 print(dot)
+            elif argv[1] in ["-p","--png"]:
+                print("\n\n PNG FILE CREATED \n")
+                dot = MakeDot()
+                for expr in ctxt.ast.stmts:
+                    expr.accept(dot)
+                dot.generate_dot_png()
             elif argv[1] in ["-s","--sym"]:
                 print(ctxt.interp.env)
             elif argv[1] in ["-R", "--exec"]:
