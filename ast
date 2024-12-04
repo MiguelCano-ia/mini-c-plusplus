@@ -5,28 +5,34 @@ digraph ast {
 int main"]
 	n1 -> n3
 	n3 [label=Body]
-	n4 [label="int x ="]
-	n5 [label="+"]
-	n6 [label="Const 5"]
-	n7 [label="Const 3"]
-	n5 -> n6
-	n5 -> n7
+	n4 [label="int a ="]
+	n5 [label="Const 5"]
 	n4 -> n5
 	n3 -> n4
-	n8 [label="int y ="]
-	n9 [label="-"]
-	n10 [label="Var x"]
-	n11 [label="Const 2"]
-	n9 -> n10
-	n9 -> n11
+	n6 [label="int c"]
+	n3 -> n6
+	n7 [label=While]
+	n8 [label="<"]
+	n9 [label="Var a"]
+	n10 [label="Const 10"]
 	n8 -> n9
-	n3 -> n8
-	n12 [label=PrintF]
-	n13 [label="Format x: %d\n"]
-	n14 [label=Args]
-	n15 [label="Var x"]
-	n14 -> n15
-	n12 -> n14
+	n8 -> n10
+	n7 -> n8
+	n11 [label=Expression]
+	n12 [label="a ="]
+	n13 [label="+"]
+	n14 [label="Var a"]
+	n15 [label="Const 1"]
+	n13 -> n14
+	n13 -> n15
 	n12 -> n13
-	n3 -> n12
+	n11 -> n12
+	n7 -> n11
+	n16 [label=Expression]
+	n17 [label="PrefixInc++"]
+	n18 [label="Var c"]
+	n17 -> n18 [label=expr]
+	n16 -> n17
+	n7 -> n16
+	n3 -> n7
 }

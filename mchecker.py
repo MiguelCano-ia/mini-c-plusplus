@@ -4,7 +4,6 @@ from dataclasses import dataclass
 from collections import ChainMap
 from myAST import *
 from multimethod import multimethod
-from rich import print
 
 @dataclass
 class SemanticAnalyzer(Visitor):
@@ -276,7 +275,7 @@ class SemanticAnalyzer(Visitor):
         for stmt in node.else_stmt:
           self.visit(stmt)
       else:
-        self.visit(node.elseStmt)
+        self.visit(node.else_stmt)
       self.symtable = self.symtable.parents
 
   @multimethod

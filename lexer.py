@@ -4,7 +4,6 @@
 
 import os
 import sly
-from rich import print
 
 class Lexer(sly.Lexer):
     #Tokens List

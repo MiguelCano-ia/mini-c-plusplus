@@ -3,7 +3,6 @@ import sys
 from lexer import *
 from parser import *
 from myAST import *
-from rich import print
 from mchecker import *
 from mdot import *
 import os

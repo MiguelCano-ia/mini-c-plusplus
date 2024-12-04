@@ -4,7 +4,6 @@ from buildins import builtins, consts
 from types import *
 from dataclasses import dataclass
 from multimethod import multimethod
-from rich import print
 
 #Verifies if a value is truthy
 def isTruth(value):
@@ -308,45 +307,31 @@ class Interpreter(Visitor):
   
   @multimethod
   def visit(self, node: PrintStmt):
-    # Extraer los valores de los argumentos
-    args = [arg.accept(self) for arg in node.args_list]
-
-    try:
-        # Extraer y formatear los argumentos según los especificadores
-        formatted_output = ""
-        idx = 0
-        specifier_to_type = {
-            'd': int, 'i': int, 'u': int, 'o': int, 'x': int,
-            'X': int, 'f': float, 'F': float, 'e': float, 'E': float,
-            'g': float, 'G': float, 'a': float, 'A': float, 'c': int,
-            's': str
-        }
-
-        # Reemplazar cada formato con su valor correspondiente
-        format_specifiers = re.findall(r'%[-+#0]*\d*(?:\.\d+)?[diuoxXfFeEgGaAcs]', node.format_string)
-        split_string = re.split(r'%[-+#0]*\d*(?:\.\d+)?[diuoxXfFeEgGaAcs]', node.format_string)
-
-        for part, specifier in zip(split_string, format_specifiers):
-            formatted_output += part
-            key = specifier[-1]
-            if idx < len(args):
-                # Aplicar el formato correcto al argumento correspondiente
-                value = args[idx]
-                expected_type = specifier_to_type.get(key)
-                if not isinstance(value, expected_type):
-                    raise ValueError(f"Argument {value} does not match specifier {specifier}")
-                formatted_output += specifier % value
-                idx += 1
-
-        # Añadir la parte restante de la cadena
-        if len(split_string) > len(format_specifiers):
-            formatted_output += split_string[-1]
-
-        # Imprimir el resultado
-        print(formatted_output, end="")  # El `end=""` permite manejar `\n` correctamente.
-
-    except (TypeError, ValueError, IndexError) as e:
-        self.error(node, f"Error in print statement: {e}")
+    if node.args_list:
+      # Evaluar cada argumento en args_list
+      values = tuple(arg.accept(self) for arg in node.args_list)
+      try:
+        # Procesar los caracteres de escape en format_string
+        processed_format_string = bytes(node.format_string, "utf-8").decode("unicode_escape")
+          
+            # Aplicar el formato usando el operador % de Python
+        formatted = processed_format_string % values
+      except TypeError as e:
+        # Manejar errores de formateo, aunque el checker ya debería haber validado esto
+        self.error(node, f"Error de formateo: {e}")
+      except UnicodeDecodeError as e:
+        # Manejar errores de decodificación de caracteres de escape
+        self.error(node, f"Error en caracteres de escape: {e}")
+    else:
+      # Si no hay argumentos, procesar los caracteres de escape directamente
+      try:
+        processed_format_string = bytes(node.format_string, "utf-8").decode("unicode_escape")
+        formatted = processed_format_string
+      except UnicodeDecodeError as e:
+        self.error(node, f"Error en caracteres de escape: {e}")
+    
+    # Imprimir la cadena formateada sin añadir una nueva línea adicional
+    print(f"{formatted}", end="")
     
   @multimethod
   def visit(self, node: SPrintStmt):
