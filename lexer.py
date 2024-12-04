@@ -110,7 +110,6 @@ class Lexer(sly.Lexer):
     MULT_ASSIGN = r'\*='
     DIV_ASSIGN = r'/='
     
-
     def error(self, t):
         print(f'Error: Illegal character {t.value[0]}')
         self.index += 1
