@@ -1,6 +1,6 @@
 from myAST import *
 from mchecker import *
-from builtins import *
+from buildins import builtins, consts
 from types import *
 from dataclasses import dataclass
 from multimethod import multimethod
@@ -60,10 +60,9 @@ class Function:
     interpreter.env = newEnv
     #Execute the function body
     try :
-      #Iterate over the body of the function
-      self.node.body.accept(interpreter)
-      #If the function does not return a value, return None
       result = None
+      for stmt in self.node.body:
+        stmt.accept(interpreter)
     except ReturnException as e:
       result = e.value
     finally:
@@ -189,8 +188,18 @@ class Interpreter(Visitor):
       
     try:
       node.accept(self)
-    except MiniCExit:
-      pass
+      main_func = self.env.get('main')
+      if not isinstance(main_func, Function):
+        raise Exception("No valid 'main' function found")
+
+      # Ejecuta main sin argumentos (ajusta si acepta parámetros)
+      result = main_func(self)
+      if result is not None:
+        print(f"Program exited with value: {result}")
+    except ReturnException as re:
+      print(f"Program exited with value: {re.value}")
+    except Exception as e:
+      print(f"Error during execution: {e}")
 
   #declarations
   @multimethod
@@ -211,8 +220,9 @@ class Interpreter(Visitor):
     
   @multimethod  
   def visit(self, node: FuncDecl):
+
     func = Function(node, self.env)
-    self.env[node.name] = func
+    self.env[node.ident] = func
   
   @multimethod
   def visit(self, node: VarDecl):
@@ -295,12 +305,31 @@ class Interpreter(Visitor):
   
   @multimethod
   def visit(self, node: PrintStmt):
-    args = [arg.accept(self) for arg in node.args_list]
+    if node.args_list:
+      # Evaluar cada argumento en args_list
+      values = tuple(arg.accept(self) for arg in node.args_list)
+      try:
+        # Procesar los caracteres de escape en format_string
+        processed_format_string = bytes(node.format_string, "utf-8").decode("unicode_escape")
+          
+            # Aplicar el formato usando el operador % de Python
+        formatted = processed_format_string % values
+      except TypeError as e:
+        # Manejar errores de formateo, aunque el checker ya debería haber validado esto
+        self.error(node, f"Error de formateo: {e}")
+      except UnicodeDecodeError as e:
+        # Manejar errores de decodificación de caracteres de escape
+        self.error(node, f"Error en caracteres de escape: {e}")
+    else:
+      # Si no hay argumentos, procesar los caracteres de escape directamente
+      try:
+        processed_format_string = bytes(node.format_string, "utf-8").decode("unicode_escape")
+        formatted = processed_format_string
+      except UnicodeDecodeError as e:
+        self.error(node, f"Error en caracteres de escape: {e}")
     
-    try:
-      print(node.format_string.format(*args))
-    except (IndexError, ValueError) as e:
-      self.error(node, f'Error in print statement: {e}')
+    # Imprimir la cadena formateada sin añadir una nueva línea adicional
+    print(f"{formatted}", end="")
     
   @multimethod
   def visit(self, node: SPrintStmt):
@@ -323,7 +352,9 @@ class Interpreter(Visitor):
   
   @multimethod
   def visit(self, node: ThisStmt):
-    return self.env.maps[self.localMap[id(node)]]['this']  
+    if 'this' not in self.env:
+      raise Exception("No instance found")
+    return self.env['this']
   
   @multimethod
   def visit(self, node: PrivateStmt):
@@ -345,11 +376,7 @@ class Interpreter(Visitor):
   
   @multimethod
   def visit(self, node: CallExpr):
-    obj = self.env.get(node.object_name)
-    meth = obj.get(node.ident)
-    args = [arg.accept(self) for arg in node.args]
-    
-    return meth(*args)
+    pass
   
   @multimethod
   def visit(self, node: ConstExpr):
@@ -362,45 +389,194 @@ class Interpreter(Visitor):
     expr = node.expr.accept(self)
     
     if operator == '=':
-      self.env.maps[self.localMap[id(node)]][ident] = expr
+      self.env[node.ident] = expr
     elif operator == '+=':
-      self.env.maps[self.localMap[id(node)]][ident] += expr
+      self.env[node.ident] += expr
     elif operator == '-=':
-      self.env.maps[self.localMap[id(node)]][ident] -= expr
+      self.env[node.ident] -= expr
     elif operator == '*=':
-      self.env.maps[self.localMap[id(node)]][ident] *= expr
+      self.env[node.ident] *= expr
     elif operator == '/=':
-      self.env.maps[self.localMap[id(node)]][ident] /= expr
+      self.env[node.ident] /= expr
   
   @multimethod
   def visit(self, node: VarExpr):
-    return self.env.maps[self.localMap[id(node)]][node.ident]
+    if node.ident not in self.env:
+        raise Exception(f"Variable '{node.ident}' is not defined in the current environment: {dict(self.env)}")
+    value = self.env[node.ident]
+    return value
   
   @multimethod
   def visit(self, node: ArrayLookupExpr):
-    array = self.env.maps[self.localMap[id(node)]][node.ident]
+    if node.ident not in self.env:
+      raise Exception(f"Variable '{node.ident}' is not defined in the current environment: {dict(self.env)}")
+    
+    array = self.env[node.ident]
     index = node.index.accept(self)  
+    
+    if not isinstance(index, int):
+      raise Exception(f"Array index must be an integer got {type(index).__name__}")
+    if not isinstance(array, list):
+      raise Exception(f"Variable '{node.ident}' is not an array")
+    if index < 0 or index >= len(array):
+      raise Exception(f"Array index out of bounds")
     return array[index]
 
   @multimethod
   def visit(self, node: VarAssignExpr):
-    var = self.env.maps[self.localMap[id(node)]][node.ident]
+    if node.ident not in self.env:
+      raise Exception(f"Variable '{node.ident}' is not defined in the current environment: {dict(self.env)}")
+    
     value = node.expr.accept(self)
-    self.env.maps[self.localMap[id(node)]][node.ident] = value
+    self.env[node.ident] = value
+    
+    return value
   
   @multimethod
   def visit(self, node: ArrayAssignExpr):
-    array = self.env.maps[self.localMap[id(node)]][node.ident]
+    if not node.ident in self.env:
+      raise Exception(f"Variable '{node.ident}' is not defined in the current environment: {dict(self.env)}")
+    
+    array = self.env[node.ident]
     index = node.index.accept(self)
     value = node.expr.accept(self)
+    
+    if not isinstance(index, int):
+      raise Exception(f"Array index must be an integer got {type(index).__name__}")
+    if not isinstance(array, list):
+      raise Exception(f"Variable '{node.ident}' is not an array")
+    if index < 0 or index >= len(array):
+      raise Exception(f"Array index out of bounds")
     array[index] = value
   
   @multimethod
   def visit(self, node: ArraySizeExpr):
-    array = self.env.maps[self.localMap[id(node)]][node.ident]
+    if node.ident not in self.env:
+      raise Exception(f"Variable '{node.ident}' is not defined in the current environment: {dict(self.env)}")
+    
+    array = self.env[node.ident]
+    
+    if not isinstance(array, list):
+      raise Exception(f"Variable '{node.ident}' is not an array")
     return len(array)
   
   @multimethod
   def visit(self, node: IntToFloatExpr):
     expr = node.expr.accept(self)
     return float(expr)
+  
+  @multimethod
+  def visit(self, node: BinaryExpr):
+    left = node.left.accept(self)
+    right = node.right.accept(self)
+    operand = node.operand
+    
+    if operand  == '+':
+      (isinstance(left,str) and isinstance(right,str)) or  self.check_numeric_operands(node, left, right)
+      return left + right
+    elif operand == '-':
+      self.check_numeric_operands(node, left, right)
+      return left - right
+    elif operand == '*':
+      self.check_numeric_operands(node, left, right)
+      return left * right
+    elif operand == '/':
+      self.check_numeric_operands(node, left, right)
+      if isinstance(left, int) and isinstance(right, int):
+        return left // right
+      return left / right
+    elif operand == '%':
+      self.check_numeric_operands(node, left, right)
+      return left % right
+    elif operand == '==':
+      return left == right
+    elif operand == '!=':
+      return left != right
+    elif operand == '>':
+      self.check_numeric_operands(node, left, right)
+      return left > right
+    elif operand == '<':
+      self.check_numeric_operands(node, left, right)
+      return left < right
+    elif operand == '>=':
+      self.check_numeric_operands(node, left, right)
+      return left >= right
+    elif operand == '<=':
+      self.check_numeric_operands(node, left, right)
+      return left <= right
+    else:
+      raise NotImplementedError(f'Operator {operand} not recognized')
+
+  @multimethod
+  def visit(self, node: UnaryExpr):
+    operand = node.operand
+    expr = node.expr.accept(self)
+    
+    if operand == '+':
+      self.check_numeric_operand(node, expr)
+      return +expr
+    elif operand == '-':
+      self.check_numeric_operand(node, expr)
+      return -expr
+    elif operand == '!':
+      return not isTruth(expr)
+    else:
+      raise NotImplementedError(f'Operator {operand} not recognized')
+    
+  @multimethod
+  def visit(self, node: CastExpr):
+    targetType = node.target_type
+    expr = node.expr.accept(self)
+    
+    try:
+      if targetType == 'int':
+        return int(expr)
+      elif targetType == 'float':
+        return float(expr)
+      elif targetType == 'bool':
+        return bool(expr)
+      elif targetType == 'string':
+        return str(expr)
+      else:
+        raise NotImplementedError(f'Target type {targetType} not recognized')
+    except ValueError:
+      self.error(node, f'Cannot cast {expr} to {targetType}')
+      
+  @multimethod
+  def visit(self, node: GroupingExpr):
+    return node.expr.accept(self)
+  
+  @multimethod
+  def visit(self, node : PrefixIncExpr):
+    expr = node.expr.accept(self)
+    return expr + 1
+  
+  @multimethod
+  def visit(self, node : PrefixDecExpr):
+    expr = node.expr.accept(self)
+    return expr - 1
+  
+  @multimethod
+  def visit(self, node : PostfixIncExpr):
+    expr = node.expr.accept(self)
+    return expr + 1
+  
+  @multimethod
+  def visit(self, node : PostfixDecExpr):
+    expr = node.expr.accept(self)
+    return expr - 1
+  
+  @multimethod
+  def visit(self, node : ShortCircuitAndExpr):
+    left = node.left.accept(self)
+    right = node.right.accept(self)
+    
+    return left and right
+  
+  @multimethod
+  def visit(self, node: ShortCircuitOrExpr):
+    left = node.left.accept(self)
+    right = node.right.accept(self)
+    
+    return left or right
+  

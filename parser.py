@@ -1,6 +1,5 @@
 from dataclasses import dataclass
 import sly
-from rich import print
 from lexer import Lexer
 from myAST import *
 

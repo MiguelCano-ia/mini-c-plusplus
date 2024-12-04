@@ -15,7 +15,7 @@ bool equalator() {
     int a = 5;
     int b = 10;
     if (a == 5 || (b / a) > 2) {
-      return false;
+        return false;
     }
     return true;
 }

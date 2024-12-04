@@ -4,7 +4,6 @@ from dataclasses import dataclass
 from collections import ChainMap
 from myAST import *
 from multimethod import multimethod
-from rich import print
 
 @dataclass
 class ScopeInfo:

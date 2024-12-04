@@ -1,8 +1,6 @@
 #include <string>
 int main() {
-    float num = 10.5;
-    int a = 5;
+    string a = "hola";
     
-    printf("The value of a is %d\n", a);
-    return 0;
+    printf("%s\n", a);
 }

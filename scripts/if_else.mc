@@ -4,12 +4,13 @@ int main() {
     bool c = false;
 
     if (a > b) {
-        c = true;
-        bool d = false;
+      c = true;
     } else {
-        c = false;
-        bool e = true;
+      printf("a no es mayor que b\n");
+      c = false;
     }
+
+    printf("%f\n", b);
 
     return 0;
 }
