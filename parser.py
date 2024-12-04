@@ -47,6 +47,10 @@ class Parser(sly.Parser):
     @_("CLASS IDENT '{' class_body '}' ';'")
     def class_decl(self, p):
         return ClassDecl(p.IDENT, None, p.class_body)
+      
+    @_("CLASS IDENT ':' IDENT '{' class_body '}' ';'")
+    def class_decl(self, p):
+        return ClassDecl(p.IDENT0, p.IDENT1, p.class_body)
 
     @_("access_specifier class_body")
     def class_body(self, p):
@@ -199,7 +203,7 @@ class Parser(sly.Parser):
 
     # Sentencia 'super'
     @_("SUPER '(' args_list ')' ';'")
-    def super_stmt(self, p):
+    def super_stmt(self, p):  
         return SuperStmt(p.args_list)
 
     # Sentencia de expresión

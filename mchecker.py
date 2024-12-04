@@ -15,6 +15,8 @@ class SemanticAnalyzer(Visitor):
   loopNesting = 0
   functionsDeclared = {}
   
+  
+  
   def visit (self, node):
     methodName = 'visit' + node.__class__.__name__
     visitor = getattr(self, methodName, self.generic_visit)
@@ -36,6 +38,24 @@ class SemanticAnalyzer(Visitor):
         if isinstance(class_decl, ClassDecl):
           return class_decl
     return None
+  
+  def validateSuperClass(self, class_name, super_class_name):
+    if super_class_name == class_name:
+      self.errors.append(f"Error: Class '{class_name}' cannot inherit from itself")
+      return None
+    
+    super_class = self.lookupClass(super_class_name)
+    
+    if super_class is None:
+      self.errors.append(f"Error: Superclass '{super_class_name}' not declared")
+      return None
+    
+    if super_class.super_class == class_name:
+      self.errors.append(f"Error: Circular inheritance between '{class_name}' and '{super_class_name}'")
+      return None
+    
+    return super_class
+  
 
   def findConstructor(self, class_decl, class_name):
     for member in class_decl.body:
@@ -397,13 +417,16 @@ class SemanticAnalyzer(Visitor):
     if self.currentClass is None:
       self.errors.append("Error: 'super' used outside of a class")
       return
+    
     if self.currentClass.super_class is None:
       self.errors.append(f"Error: Class '{self.currentClass.ident}' has no superclass")
       return
+    
     superClass = self.lookupClass(self.currentClass.super_class)
     if superClass is None:
       self.errors.append(f"Error: Superclass '{self.currentClass.super_class}' is not declared")
       return
+    
     constructor = self.findConstructor(superClass, superClass.ident)
     if constructor:
       if len(node.args_list) != len(constructor.params):
@@ -657,13 +680,26 @@ class SemanticAnalyzer(Visitor):
   @multimethod
   def visit(self, node: ClassDecl):
     className = node.ident
+    superClassName = node.super_class
+    
     if className in self.symtable.maps[0]:
-      self.errors.append(f"Error: Class '{className}' already declared in this scope")
+      self.errors.append(f"Error: Class '{className}' already declared")
+      return
     else:
       self.symtable[className] = node
+      
+    if superClassName:
+      superClass = self.validateSuperClass(className, superClassName)
+      if superClass is None:
+        return
+    
     self.currentClass = node
     self.symtable = self.symtable.new_child()
+    
     for member in node.body:
       self.visit(member)
+      
     self.symtable = self.symtable.parents
     self.currentClass = None
+      
+  
