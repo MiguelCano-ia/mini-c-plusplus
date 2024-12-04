@@ -1,3 +1,3 @@
 void noMainInThisCode() {
-    // Código...
+    return 0;
 }

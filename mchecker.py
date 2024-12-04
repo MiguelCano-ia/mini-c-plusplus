@@ -7,15 +7,20 @@ from multimethod import multimethod
 from rich import print
 
 @dataclass
+class ScopeInfo:
+    name: str      
+    type: str      
+    symbols: dict   
+
+@dataclass
 class SemanticAnalyzer(Visitor):
   symtable = ChainMap()
+  all_scopes = [] 
   errors = []
   currentFunction = None
   currentClass = None
   loopNesting = 0
   functionsDeclared = {}
-  
-  
   
   def visit (self, node):
     methodName = 'visit' + node.__class__.__name__
@@ -39,6 +44,14 @@ class SemanticAnalyzer(Visitor):
           return class_decl
     return None
   
+  def enter_scope(self, name='Unnamed', scope_type='Bloque'):
+    self.symtable = self.symtable.new_child()
+    scope_info = ScopeInfo(name=name, type=scope_type, symbols=self.symtable.maps[0])
+    self.all_scopes.append(scope_info)
+
+  def leave_scope(self):
+      self.symtable = self.symtable.parents
+  
   def validateSuperClass(self, class_name, super_class_name):
     if super_class_name == class_name:
       self.errors.append(f"Error: Class '{class_name}' cannot inherit from itself")
@@ -54,8 +67,7 @@ class SemanticAnalyzer(Visitor):
       self.errors.append(f"Error: Circular inheritance between '{class_name}' and '{super_class_name}'")
       return None
     
-    return super_class
-  
+    return super_class 
 
   def findConstructor(self, class_decl, class_name):
     for member in class_decl.body:
@@ -161,41 +173,92 @@ class SemanticAnalyzer(Visitor):
 
   @multimethod
   def visit(self, node: Program):
-    for stmt in node.stmts:
-      self.visit(stmt)
-    # Check if main function is declared
-    self.checkMainFunction()
+      self.symtable = ChainMap()
+      self.all_scopes = [] 
+      self.errors = []
+      self.functionsDeclared = {}  
+      self.currentFunction = None
+      self.currentClass = None
+      self.loopNesting = 0
+      # Entrar en el scope global
+      self.enter_scope(name='Global', scope_type='Global')
+      
+      for stmt in node.stmts:
+          self.visit(stmt)
+      
+      # Verificar si la función main está declarada
+      self.checkMainFunction()
+      
+      # Salir del scope global
+      self.leave_scope()
 
   @multimethod
   def visit(self, node: FuncDecl):
     funcName = node.ident
+    
+    # Verificar si estamos dentro de una clase
+    if self.currentClass is not None:
+      className = self.currentClass.ident
+      if funcName == className:
+        # Es un constructor
+        self.visitConstructor(node)
+        return
 
-    # Check if function is already declared
+    # Verificar si la función ya está declarada en el scope global
     if funcName in self.symtable.maps[0]:
-      self.errors.append(f"Error: Function {funcName} already declared")
-      return
+        self.errors.append(f"Error: Function {funcName} already declared")
+        return
     else:
-      # If function is not declared, add it to the symbol table
-      self.symtable[funcName] = node
-      self.functionsDeclared[funcName] = node
+        # Agregar la función a la tabla de símbolos global
+        self.symtable.maps[0][funcName] = node
+        self.functionsDeclared[funcName] = node
 
-      # Check if function return type is valid
-      self.currentFunction = node
-      self.symtable = self.symtable.new_child()
+        # Establecer la función actual
+        self.currentFunction = node
 
-      # Add parameters to the symbol table
-      for param in node.params:
+        # Entrar en un nuevo scope para la función
+        self.enter_scope(name=funcName, scope_type='Función')
+
+        # Agregar parámetros al scope actual
+        for param in node.params:
+            if param.ident in self.symtable.maps[0]:
+                self.errors.append(f"Error: Parameter {param.ident} already declared in function {funcName}")
+            else:
+                self.symtable.maps[0][param.ident] = param.var_type
+
+        # Visitar el cuerpo de la función
+        for stmt in node.body:
+            self.visit(stmt)
+
+        # Salir del scope de la función
+        self.leave_scope()
+        self.currentFunction = None
+        
+  def visitConstructor(self, node: FuncDecl):
+    constructorName = node.ident
+
+    if constructorName in self.symtable.maps[0]:
+        self.errors.append(f"Error: Constructor '{constructorName}' ya declarado en la clase '{self.currentClass.ident}'")
+    else:
+        self.symtable[constructorName] = {
+            'kind': 'constructor',
+            'params': node.params,
+        }
+
+    self.enter_scope(name=f"Constructor {constructorName}", scope_type='Constructor')
+
+    for param in node.params:
         if param.ident in self.symtable.maps[0]:
-          self.errors.append(f"Error: Parameter {param.ident} already declared in function {funcName}")
+            self.errors.append(f"Error: Parámetro '{param.ident}' ya declarado en el constructor '{constructorName}'")
         else:
-          self.symtable[param.ident] = param.var_type
+            self.symtable[param.ident] = param.var_type 
 
-      for stmt in node.body:
+    for stmt in node.body:
         self.visit(stmt)
 
-      self.symtable = self.symtable.parents
-      self.currentFunction = None
-      
+    self.leave_scope()
+
+        
   @multimethod
   def visit(self, node: NullExpr):
     return 'null'
@@ -253,24 +316,25 @@ class SemanticAnalyzer(Visitor):
   def visit(self, node: ExprStmt):
     self.visit(node.expr)
 
-
   @multimethod
   def visit(self, node: IfStmt):
     condType = self.visit(node.cond)
     if condType != 'bool':
       self.errors.append(f"Error: The 'if' condition must be of type 'bool', found '{condType}'")
-    self.symtable = self.symtable.new_child()
+      
+    self.enter_scope(name='If-Then', scope_type='Bloque')
     for stmt in node.then_stmt:
       self.visit(stmt)
-    self.symtable = self.symtable.parents
+    self.leave_scope()
+    
     if node.else_stmt:
-      self.symtable = self.symtable.new_child()
+      self.enter_scope(name='If-Else', scope_type='Bloque')
       if isinstance(node.else_stmt, list):
         for stmt in node.else_stmt:
           self.visit(stmt)
       else:
-        self.visit(node.elseStmt)
-      self.symtable = self.symtable.parents
+        self.visit(node.else_stmt)
+      self.leave_scope()
 
   @multimethod
   def visit(self, node: ReturnStmt):
@@ -300,33 +364,43 @@ class SemanticAnalyzer(Visitor):
     condType = self.visit(node.cond)
     if condType != 'bool':
       self.errors.append(f"Error: The 'while' condition must be of type 'bool', found '{condType}'")
+    
     self.loopNesting += 1
-    self.symtable = self.symtable.new_child()
+    
+    self.enter_scope(name='While Loop', scope_type='Loop')
+    
     for stmt in node.body:
       self.visit(stmt)
-    self.symtable = self.symtable.parents
+    
+    self.leave_scope()
+    
     self.loopNesting -= 1
+
 
   @multimethod
   def visit(self, node: ForStmt):
     self.loopNesting += 1
-    self.symtable = self.symtable.new_child()
+
+    # Entrar en un nuevo scope para el bucle for
+    self.enter_scope(name='For-Loop', scope_type='Bloque')
 
     if node.initialization:
-      self.visit(node.initialization)
+        self.visit(node.initialization)
 
     if node.condition:
-      condType = self.visit(node.condition)
-      if condType != 'bool':
-        self.errors.append(f"Error: The 'for' condition must be of type 'bool', found '{condType}'")
+        condType = self.visit(node.condition)
+        if condType != 'bool':
+            self.errors.append(f"Error: The 'for' condition must be of type 'bool', found '{condType}'")
 
     if node.increment:
-      self.visit(node.increment)
+        self.visit(node.increment)
 
+    # Visitar el cuerpo del bucle
     for stmt in node.body:
-      self.visit(stmt)
+        self.visit(stmt)
 
-    self.symtable = self.symtable.parents
+    # Salir del scope del bucle for
+    self.leave_scope()
     self.loopNesting -= 1
 
   @multimethod
@@ -357,13 +431,9 @@ class SemanticAnalyzer(Visitor):
       arg_type = self.visit(arg)
       
       if arg_type != expected_type:
-        self.errors.append(f"Error: Argument {i+1} must be of type '{expected_type}', found '{arg_type}'")
-      
-      
-      
+        self.errors.append(f"Error: Argument {i+1} must be of type '{expected_type}', found '{arg_type}'") 
     return 'void'
-      
-  
+    
   @multimethod
   def visit(self, node: SPrintStmt):
     buffer_name = node.buffer.ident
@@ -683,23 +753,24 @@ class SemanticAnalyzer(Visitor):
     superClassName = node.super_class
     
     if className in self.symtable.maps[0]:
-      self.errors.append(f"Error: Class '{className}' already declared")
-      return
-    else:
-      self.symtable[className] = node
-      
-    if superClassName:
-      superClass = self.validateSuperClass(className, superClassName)
-      if superClass is None:
+        self.errors.append(f"Error: Class '{className}' already declared")
         return
+    else:
+        self.symtable[className] = node
+        
+    if superClassName:
+        superClass = self.validateSuperClass(className, superClassName)
+        if superClass is None:
+            return
     
-    self.currentClass = node
-    self.symtable = self.symtable.new_child()
+    self.currentClass = node    
+    self.enter_scope(name=className, scope_type='Clase')
     
     for member in node.body:
-      self.visit(member)
-      
-    self.symtable = self.symtable.parents
+        self.visit(member)
+    
+    self.leave_scope()
     self.currentClass = None
+
       
   

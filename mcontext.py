@@ -8,23 +8,36 @@ el código fuente, informe de errores, etc.
 '''
 from lexer    import Lexer
 from parser  import Parser
+from mchecker import SemanticAnalyzer
 from rich import print
+from myInterpreter import Interpreter
 
 import myAST as cast
 
 class Context:
-
 	def __init__(self):
 		self.lexer  = Lexer()
 		self.parser = Parser()
+		self.checker = SemanticAnalyzer()
 		self.source = ''
 		self.ast    = None
 		self.have_errors = False
+		self.symtab = None
 
 	def parse(self, source): #makes work the Parser
 		self.have_errors = False
 		self.source = source
 		self.ast = self.parser.parse(self.lexer.tokenize(self.source))
+  
+	def check(self):
+		if not self.have_errors:
+			self.checker.visit(self.ast)
+			if self.checker.errors:
+				for error in self.checker.errors:
+						self.error(None, error)
+				self.have_errors = True
+			else:
+				self.symtab = self.checker.all_scopes
 
 	def run(self): #makes work the interpreter
 		if not self.have_errors:

@@ -124,7 +124,7 @@ class Parser(sly.Parser):
         return p[0]
   
     # Sentencias posibles
-    @_("expr_stmt", "compound_stmt", "if_stmt", "return_stmt", "while_stmt",
+    @_("expr_stmt", "compound_stmt", "if_stmt",         "return_stmt", "while_stmt",
        "break_stmt", "continue_stmt", "super_stmt",
        "object_decl", "for_stmt", "this_stmt", "printf_stmt", "sprintf_stmt")
     def stmt(self, p):
@@ -297,8 +297,6 @@ class Parser(sly.Parser):
     def var_decl(self, p):
         return VarDecl(p.type_spec, p.IDENT, p.assignment_expr)
       
-    
-
     @_("type_spec IDENT '[' expr ']' ';'")
     def var_decl(self, p):
         return ArrayDecl(p.type_spec, p.IDENT, p.expr)
@@ -453,7 +451,7 @@ class Parser(sly.Parser):
     # Regla para una producción vacía
     @_("")
     def empty(self, p):
-        pass  # No se devuelve nada
+        return []  # No se devuelve nada
 
     # Manejo de errores de sintaxis
     def error(self, p):

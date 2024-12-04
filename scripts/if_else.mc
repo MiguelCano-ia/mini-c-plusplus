@@ -5,8 +5,10 @@ int main() {
 
     if (a > b) {
         c = true;
+        bool d = false;
     } else {
         c = false;
+        bool e = true;
     }
 
     return 0;

@@ -3,7 +3,7 @@ int main() {
     int b = 10;
     bool flag = true;
     if (a && flag) {
-        // Código
+        return 1;
     }
     return 0;
 }

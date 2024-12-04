@@ -12,10 +12,10 @@ int main() {
 }
 
 bool equalator() {
-  int a = 5;
+    int a = 5;
     int b = 10;
     if (a == 5 || (b / a) > 2) {
-        // Código
+      return false;
     }
     return true;
 }

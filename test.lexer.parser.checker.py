@@ -1,9 +1,9 @@
-from lexer import *
-from parser import *
+from lexer import Lexer
+from parser import Parser
 from myAST import *
 from rich import print
-from mchecker import *
-from mdot import *
+from mchecker import SemanticAnalyzer
+from mdot import MakeDot
 import os
 
 def select_script():

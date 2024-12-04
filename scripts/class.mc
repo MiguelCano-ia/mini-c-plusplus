@@ -4,14 +4,15 @@ class Animal {
         float peso;
     public:
         Animal() {
-            edad = 0;
-            peso = 0.0;
+            edad = 5;
+            peso = 1.0;
+            int counter = 0;
         }
 
-        void setEdad(int e) { edad = e; }
-        int getEdad() { return edad; }
-        void setPeso(float p) { peso = p; }
-        float getPeso() { return peso; }
+    void setEdad(int e) { edad = e; }
+    int getEdad() { return edad; }
+    void setPeso(float p) { peso = p; }
+    float getPeso() { return peso; }
 };
 
 int main() {

@@ -1,6 +1,6 @@
 from myAST import *
 from mchecker import *
-from builtins import builtins, consts, CallError
+from builtins import *
 from types import *
 from dataclasses import dataclass
 from multimethod import multimethod
@@ -142,10 +142,8 @@ class Instance:
     self.data[name] = value
     return value
   
-  
 #Class to represent the interpreter
 class Interpreter(Visitor):
-  
   def __init__(self, ctxt, semantic_analyzer):
     #Save the context
     self.ctxt = ctxt
@@ -339,7 +337,6 @@ class Interpreter(Visitor):
   def visit(self, node: PublicStmt):
     pass
   
-  
   #Expressions
   
   @multimethod
@@ -407,6 +404,3 @@ class Interpreter(Visitor):
   def visit(self, node: IntToFloatExpr):
     expr = node.expr.accept(self)
     return float(expr)
-  
-  @multimethod
-  

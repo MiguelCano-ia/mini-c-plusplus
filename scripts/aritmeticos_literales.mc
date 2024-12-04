@@ -7,12 +7,5 @@ int main() {
     --y; //Comentario decremento
 
     int a = 5;
-
-    //probanmdo null
-    int b = 0;
-    if (b == null) {
-        b = 1;
-    }
-    return 0;
 }
 
