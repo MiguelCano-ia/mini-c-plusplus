@@ -68,6 +68,12 @@ def tryParser():
         print("\nAST:")
         print(ast)
         
+        dot = MakeDot()
+        for expr in ast.stmts:
+            expr.accept(dot)
+        dot.generate_dot()
+        dot.generate_dot_png()
+        
         analyzer = SemanticAnalyzer()
         analyzer.visit(ast)
         
@@ -76,11 +82,6 @@ def tryParser():
                 print(error)
         else:
             print("Análisis semántico completado sin errores.")
-        
-        dot = MakeDot()
-        for expr in ast.stmts:
-            expr.accept(dot)
-        dot.generate_dot()
     else:
         print("[red]No script selected or an error occurred.")
 
