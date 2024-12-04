@@ -348,11 +348,7 @@ class Interpreter(Visitor):
   
   @multimethod
   def visit(self, node: CallExpr):
-    obj = self.env.get(node.object_name)
-    meth = obj.get(node.ident)
-    args = [arg.accept(self) for arg in node.args]
-    
-    return meth(*args)
+    pass
   
   @multimethod
   def visit(self, node: ConstExpr):
@@ -409,4 +405,117 @@ class Interpreter(Visitor):
     return float(expr)
   
   @multimethod
+  def visit(self, node: BinaryExpr):
+    left = node.left.accept(self)
+    right = node.right.accept(self)
+    operand = node.operand
+    
+    if operand  == '+':
+      (isinstance(left,str) and isinstance(right,str)) or  self.check_numeric_operands(node, left, right)
+      return left + right
+    elif operand == '-':
+      self.check_numeric_operands(node, left, right)
+      return left - right
+    elif operand == '*':
+      self.check_numeric_operands(node, left, right)
+      return left * right
+    elif operand == '/':
+      self.check_numeric_operands(node, left, right)
+      if isinstance(left, int) and isinstance(right, int):
+        return left // right
+      return left / right
+    elif operand == '%':
+      self.check_numeric_operands(node, left, right)
+      return left % right
+    elif operand == '==':
+      return left == right
+    elif operand == '!=':
+      return left != right
+    elif operand == '>':
+      self.check_numeric_operands(node, left, right)
+      return left > right
+    elif operand == '<':
+      self.check_numeric_operands(node, left, right)
+      return left < right
+    elif operand == '>=':
+      self.check_numeric_operands(node, left, right)
+      return left >= right
+    elif operand == '<=':
+      self.check_numeric_operands(node, left, right)
+      return left <= right
+    else:
+      raise NotImplementedError(f'Operator {operand} not recognized')
+
+  @multimethod
+  def visit(self, node: UnaryExpr):
+    operand = node.operand
+    expr = node.expr.accept(self)
+    
+    if operand == '+':
+      self.check_numeric_operand(node, expr)
+      return +expr
+    elif operand == '-':
+      self.check_numeric_operand(node, expr)
+      return -expr
+    elif operand == '!':
+      return not isTruth(expr)
+    else:
+      raise NotImplementedError(f'Operator {operand} not recognized')
+    
+  @multimethod
+  def visit(self, node: CastExpr):
+    targetType = node.target_type
+    expr = node.expr.accept(self)
+    
+    try:
+      if targetType == 'int':
+        return int(expr)
+      elif targetType == 'float':
+        return float(expr)
+      elif targetType == 'bool':
+        return bool(expr)
+      elif targetType == 'string':
+        return str(expr)
+      else:
+        raise NotImplementedError(f'Target type {targetType} not recognized')
+    except ValueError:
+      self.error(node, f'Cannot cast {expr} to {targetType}')
+      
+  @multimethod
+  def visit(self, node: GroupingExpr):
+    return node.expr.accept(self)
+  
+  @multimethod
+  def visit(self, node : PrefixIncExpr):
+    expr = node.expr.accept(self)
+    return expr + 1
+  
+  @multimethod
+  def visit(self, node : PrefixDecExpr):
+    expr = node.expr.accept(self)
+    return expr - 1
+  
+  @multimethod
+  def visit(self, node : PostfixIncExpr):
+    expr = node.expr.accept(self)
+    return expr + 1
+  
+  @multimethod
+  def visit(self, node : PostfixDecExpr):
+    expr = node.expr.accept(self)
+    return expr - 1
+  
+  @multimethod
+  def visit(self, node : ShortCircuitAndExpr):
+    left = node.left.accept(self)
+    right = node.right.accept(self)
+    
+    return left and right
+  
+  @multimethod
+  def visit(self, node: ShortCircuitOrExpr):
+    left = node.left.accept(self)
+    right = node.right.accept(self)
+    
+    return left or right
   
