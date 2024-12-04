@@ -113,7 +113,7 @@ def main(argv):
 
 
             elif argv[1] in ["-R", "--exec"]:
-                print("\n CHECKER + INTERPRETER \n")
+                print("\n INTERPRETER \n")
                 ctxt.run()
             else:
                 print("Not defined action")

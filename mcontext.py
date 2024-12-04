@@ -1,7 +1,7 @@
 # context.py
 '''
 Clase de alto nivel que contiene todo sobre el análisis/ejecución
-de un programa MiniC.
+de un programa MiniC++.
 
 Sirve como repositorio de información sobre el programa, incluido
 el código fuente, informe de errores, etc.
@@ -19,6 +19,7 @@ class Context:
 		self.lexer  = Lexer()
 		self.parser = Parser()
 		self.checker = SemanticAnalyzer()
+		self.interp = Interpreter(self, semantic_analyzer=self.checker)
 		self.source = ''
 		self.ast    = None
 		self.have_errors = False

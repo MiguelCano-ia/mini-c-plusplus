@@ -5,34 +5,264 @@ digraph ast {
 int main"]
 	n1 -> n3
 	n3 [label=Body]
-	n4 [label="int a ="]
-	n5 [label="Const 5"]
-	n4 -> n5
+	n4 [label="int arr"]
+	n5 [label="Const 10"]
+	n4 -> n5 [label=Size]
 	n3 -> n4
-	n6 [label="int c"]
+	n6 [label=Expression]
+	n7 [label="arr ="]
+	n8 [label="Const 0"]
+	n7 -> n8 [label=Size]
+	n6 -> n7
 	n3 -> n6
-	n7 [label=While]
-	n8 [label="<"]
-	n9 [label="Var a"]
-	n10 [label="Const 10"]
-	n8 -> n9
-	n8 -> n10
-	n7 -> n8
-	n11 [label=Expression]
-	n12 [label="a ="]
-	n13 [label="+"]
-	n14 [label="Var a"]
-	n15 [label="Const 1"]
-	n13 -> n14
-	n13 -> n15
+	n9 [label=Expression]
+	n10 [label="arr ="]
+	n11 [label="Const 1"]
+	n10 -> n11 [label=Size]
+	n9 -> n10
+	n3 -> n9
+	n12 [label=Expression]
+	n13 [label="arr ="]
+	n14 [label="Const 2"]
+	n13 -> n14 [label=Size]
 	n12 -> n13
-	n11 -> n12
-	n7 -> n11
-	n16 [label=Expression]
-	n17 [label="PrefixInc++"]
-	n18 [label="Var c"]
-	n17 -> n18 [label=expr]
-	n16 -> n17
-	n7 -> n16
-	n3 -> n7
+	n3 -> n12
+	n15 [label=Expression]
+	n16 [label="arr ="]
+	n17 [label="Const 3"]
+	n16 -> n17 [label=Size]
+	n15 -> n16
+	n3 -> n15
+	n18 [label=Expression]
+	n19 [label="arr ="]
+	n20 [label="Const 4"]
+	n19 -> n20 [label=Size]
+	n18 -> n19
+	n3 -> n18
+	n21 [label=Expression]
+	n22 [label="arr ="]
+	n23 [label="Const 5"]
+	n22 -> n23 [label=Size]
+	n21 -> n22
+	n3 -> n21
+	n24 [label=Expression]
+	n25 [label="arr ="]
+	n26 [label="Const 6"]
+	n25 -> n26 [label=Size]
+	n24 -> n25
+	n3 -> n24
+	n27 [label=Expression]
+	n28 [label="arr ="]
+	n29 [label="Const 7"]
+	n28 -> n29 [label=Size]
+	n27 -> n28
+	n3 -> n27
+	n30 [label=Expression]
+	n31 [label="arr ="]
+	n32 [label="Const 8"]
+	n31 -> n32 [label=Size]
+	n30 -> n31
+	n3 -> n30
+	n33 [label=Expression]
+	n34 [label="arr ="]
+	n35 [label="Const 9"]
+	n34 -> n35 [label=Size]
+	n33 -> n34
+	n3 -> n33
+	n36 [label=PrintF]
+	n37 [label="Format Arreglo original:\n"]
+	n36 -> n37
+	n3 -> n36
+	n38 [label=For]
+	n39 [label=Initialization]
+	n40 [label="int i ="]
+	n41 [label="Const 0"]
+	n40 -> n41
+	n39 -> n40
+	n38 -> n39
+	n42 [label=Condition]
+	n43 [label="<"]
+	n44 [label="Var i"]
+	n45 [label="Const 10"]
+	n43 -> n44
+	n43 -> n45
+	n42 -> n43
+	n38 -> n42
+	n46 [label=Increment]
+	n47 [label="i +="]
+	n48 [label="Const 1"]
+	n47 -> n48 [label=Expr]
+	n46 -> n47
+	n38 -> n46
+	n49 [label=Body]
+	n50 [label=PrintF]
+	n51 [label="Format arr[%d] = %d\n"]
+	n52 [label=Args]
+	n53 [label="Var i"]
+	n52 -> n53
+	n54 [label="Array Lookup"]
+	n55 [label="Ident arr"]
+	n54 -> n55
+	n56 [label="Var i"]
+	n54 -> n56 [label=Index]
+	n52 -> n54
+	n50 -> n52
+	n50 -> n51
+	n49 -> n50
+	n38 -> n49
+	n3 -> n38
+	n57 [label=For]
+	n58 [label=Initialization]
+	n59 [label="int i ="]
+	n60 [label="Const 0"]
+	n59 -> n60
+	n58 -> n59
+	n57 -> n58
+	n61 [label=Condition]
+	n62 [label="<"]
+	n63 [label="Var i"]
+	n64 [label="-"]
+	n65 [label="Const 10"]
+	n66 [label="Const 1"]
+	n64 -> n65
+	n64 -> n66
+	n62 -> n63
+	n62 -> n64
+	n61 -> n62
+	n57 -> n61
+	n67 [label=Increment]
+	n68 [label="i +="]
+	n69 [label="Const 1"]
+	n68 -> n69 [label=Expr]
+	n67 -> n68
+	n57 -> n67
+	n70 [label=Body]
+	n71 [label=For]
+	n72 [label=Initialization]
+	n73 [label="int j ="]
+	n74 [label="Const 0"]
+	n73 -> n74
+	n72 -> n73
+	n71 -> n72
+	n75 [label=Condition]
+	n76 [label="<"]
+	n77 [label="Var j"]
+	n78 [label="-"]
+	n79 [label="-"]
+	n80 [label="Const 10"]
+	n81 [label="Var i"]
+	n79 -> n80
+	n79 -> n81
+	n82 [label="Const 1"]
+	n78 -> n79
+	n78 -> n82
+	n76 -> n77
+	n76 -> n78
+	n75 -> n76
+	n71 -> n75
+	n83 [label=Increment]
+	n84 [label="j +="]
+	n85 [label="Const 1"]
+	n84 -> n85 [label=Expr]
+	n83 -> n84
+	n71 -> n83
+	n86 [label=Body]
+	n87 [label=If]
+	n88 [label=Cond]
+	n89 [label=">"]
+	n90 [label="Array Lookup"]
+	n91 [label="Ident arr"]
+	n90 -> n91
+	n92 [label="Var j"]
+	n90 -> n92 [label=Index]
+	n93 [label="Array Lookup"]
+	n94 [label="Ident arr"]
+	n93 -> n94
+	n95 [label="+"]
+	n96 [label="Var j"]
+	n97 [label="Const 1"]
+	n95 -> n96
+	n95 -> n97
+	n93 -> n95 [label=Index]
+	n89 -> n90
+	n89 -> n93
+	n88 -> n89
+	n87 -> n88
+	n98 [label=Then]
+	n99 [label="int temp ="]
+	n100 [label="Array Lookup"]
+	n101 [label="Ident arr"]
+	n100 -> n101
+	n102 [label="Var j"]
+	n100 -> n102 [label=Index]
+	n99 -> n100
+	n98 -> n99
+	n103 [label=Expression]
+	n104 [label="arr ="]
+	n105 [label="Var j"]
+	n104 -> n105 [label=Size]
+	n103 -> n104
+	n98 -> n103
+	n106 [label=Expression]
+	n107 [label="arr ="]
+	n108 [label="+"]
+	n109 [label="Var j"]
+	n110 [label="Const 1"]
+	n108 -> n109
+	n108 -> n110
+	n107 -> n108 [label=Size]
+	n106 -> n107
+	n98 -> n106
+	n87 -> n98
+	n86 -> n87
+	n71 -> n86
+	n70 -> n71
+	n57 -> n70
+	n3 -> n57
+	n111 [label=PrintF]
+	n112 [label="Format \nArreglo ordenado (Bubble Sort):\n"]
+	n111 -> n112
+	n3 -> n111
+	n113 [label=For]
+	n114 [label=Initialization]
+	n115 [label="int i ="]
+	n116 [label="Const 0"]
+	n115 -> n116
+	n114 -> n115
+	n113 -> n114
+	n117 [label=Condition]
+	n118 [label="<"]
+	n119 [label="Var i"]
+	n120 [label="Const 10"]
+	n118 -> n119
+	n118 -> n120
+	n117 -> n118
+	n113 -> n117
+	n121 [label=Increment]
+	n122 [label="i +="]
+	n123 [label="Const 1"]
+	n122 -> n123 [label=Expr]
+	n121 -> n122
+	n113 -> n121
+	n124 [label=Body]
+	n125 [label=PrintF]
+	n126 [label="Format arr[%d] = %d\n"]
+	n127 [label=Args]
+	n128 [label="Var i"]
+	n127 -> n128
+	n129 [label="Array Lookup"]
+	n130 [label="Ident arr"]
+	n129 -> n130
+	n131 [label="Var i"]
+	n129 -> n131 [label=Index]
+	n127 -> n129
+	n125 -> n127
+	n125 -> n126
+	n124 -> n125
+	n113 -> n124
+	n3 -> n113
+	n132 [label=Return]
+	n133 [label="Const 0"]
+	n132 -> n133
+	n3 -> n132
 }

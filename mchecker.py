@@ -333,7 +333,7 @@ class SemanticAnalyzer(Visitor):
           self.visit(stmt)
       else:
         self.visit(node.else_stmt)
-      self.leave_scope()
+      self.symtable = self.symtable.parents
 
   @multimethod
   def visit(self, node: ReturnStmt):
