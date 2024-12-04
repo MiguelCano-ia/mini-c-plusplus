@@ -1,9 +1,10 @@
 from myAST import *
 from mchecker import *
-from builtins import builtins, consts, CallError
+from buildins import builtins, consts
 from types import *
 from dataclasses import dataclass
 from multimethod import multimethod
+from rich import print
 
 #Verifies if a value is truthy
 def isTruth(value):
@@ -60,10 +61,9 @@ class Function:
     interpreter.env = newEnv
     #Execute the function body
     try :
-      #Iterate over the body of the function
-      self.node.body.accept(interpreter)
-      #If the function does not return a value, return None
       result = None
+      for stmt in self.node.body:
+        stmt.accept(interpreter)
     except ReturnException as e:
       result = e.value
     finally:
@@ -191,8 +191,18 @@ class Interpreter(Visitor):
       
     try:
       node.accept(self)
-    except MiniCExit:
-      pass
+      main_func = self.env.get('main')
+      if not isinstance(main_func, Function):
+        raise Exception("No valid 'main' function found")
+
+      # Ejecuta main sin argumentos (ajusta si acepta parámetros)
+      result = main_func(self)
+      if result is not None:
+        print(f"Program exited with value: {result}")
+    except ReturnException as re:
+      print(f"Program exited with value: {re.value}")
+    except Exception as e:
+      print(f"Error during execution: {e}")
 
   #declarations
   @multimethod
@@ -213,8 +223,9 @@ class Interpreter(Visitor):
     
   @multimethod  
   def visit(self, node: FuncDecl):
+
     func = Function(node, self.env)
-    self.env[node.name] = func
+    self.env[node.ident] = func
   
   @multimethod
   def visit(self, node: VarDecl):
@@ -297,12 +308,45 @@ class Interpreter(Visitor):
   
   @multimethod
   def visit(self, node: PrintStmt):
+    # Extraer los valores de los argumentos
     args = [arg.accept(self) for arg in node.args_list]
-    
+
     try:
-      print(node.format_string.format(*args))
-    except (IndexError, ValueError) as e:
-      self.error(node, f'Error in print statement: {e}')
+        # Extraer y formatear los argumentos según los especificadores
+        formatted_output = ""
+        idx = 0
+        specifier_to_type = {
+            'd': int, 'i': int, 'u': int, 'o': int, 'x': int,
+            'X': int, 'f': float, 'F': float, 'e': float, 'E': float,
+            'g': float, 'G': float, 'a': float, 'A': float, 'c': int,
+            's': str
+        }
+
+        # Reemplazar cada formato con su valor correspondiente
+        format_specifiers = re.findall(r'%[-+#0]*\d*(?:\.\d+)?[diuoxXfFeEgGaAcs]', node.format_string)
+        split_string = re.split(r'%[-+#0]*\d*(?:\.\d+)?[diuoxXfFeEgGaAcs]', node.format_string)
+
+        for part, specifier in zip(split_string, format_specifiers):
+            formatted_output += part
+            key = specifier[-1]
+            if idx < len(args):
+                # Aplicar el formato correcto al argumento correspondiente
+                value = args[idx]
+                expected_type = specifier_to_type.get(key)
+                if not isinstance(value, expected_type):
+                    raise ValueError(f"Argument {value} does not match specifier {specifier}")
+                formatted_output += specifier % value
+                idx += 1
+
+        # Añadir la parte restante de la cadena
+        if len(split_string) > len(format_specifiers):
+            formatted_output += split_string[-1]
+
+        # Imprimir el resultado
+        print(formatted_output, end="")  # El `end=""` permite manejar `\n` correctamente.
+
+    except (TypeError, ValueError, IndexError) as e:
+        self.error(node, f"Error in print statement: {e}")
     
   @multimethod
   def visit(self, node: SPrintStmt):
@@ -325,7 +369,9 @@ class Interpreter(Visitor):
   
   @multimethod
   def visit(self, node: ThisStmt):
-    return self.env.maps[self.localMap[id(node)]]['this']  
+    if 'this' not in self.env:
+      raise Exception("No instance found")
+    return self.env['this']
   
   @multimethod
   def visit(self, node: PrivateStmt):
@@ -361,42 +407,75 @@ class Interpreter(Visitor):
     expr = node.expr.accept(self)
     
     if operator == '=':
-      self.env.maps[self.localMap[id(node)]][ident] = expr
+      self.env[node.ident] = expr
     elif operator == '+=':
-      self.env.maps[self.localMap[id(node)]][ident] += expr
+      self.env[node.ident] += expr
     elif operator == '-=':
-      self.env.maps[self.localMap[id(node)]][ident] -= expr
+      self.env[node.ident] -= expr
     elif operator == '*=':
-      self.env.maps[self.localMap[id(node)]][ident] *= expr
+      self.env[node.ident] *= expr
     elif operator == '/=':
-      self.env.maps[self.localMap[id(node)]][ident] /= expr
+      self.env[node.ident] /= expr
   
   @multimethod
   def visit(self, node: VarExpr):
-    return self.env.maps[self.localMap[id(node)]][node.ident]
+    if node.ident not in self.env:
+        raise Exception(f"Variable '{node.ident}' is not defined in the current environment: {dict(self.env)}")
+    value = self.env[node.ident]
+    return value
   
   @multimethod
   def visit(self, node: ArrayLookupExpr):
-    array = self.env.maps[self.localMap[id(node)]][node.ident]
+    if node.ident not in self.env:
+      raise Exception(f"Variable '{node.ident}' is not defined in the current environment: {dict(self.env)}")
+    
+    array = self.env[node.ident]
     index = node.index.accept(self)  
+    
+    if not isinstance(index, int):
+      raise Exception(f"Array index must be an integer got {type(index).__name__}")
+    if not isinstance(array, list):
+      raise Exception(f"Variable '{node.ident}' is not an array")
+    if index < 0 or index >= len(array):
+      raise Exception(f"Array index out of bounds")
     return array[index]
 
   @multimethod
   def visit(self, node: VarAssignExpr):
-    var = self.env.maps[self.localMap[id(node)]][node.ident]
+    if node.ident not in self.env:
+      raise Exception(f"Variable '{node.ident}' is not defined in the current environment: {dict(self.env)}")
+    
     value = node.expr.accept(self)
-    self.env.maps[self.localMap[id(node)]][node.ident] = value
+    self.env[node.ident] = value
+    
+    return value
   
   @multimethod
   def visit(self, node: ArrayAssignExpr):
-    array = self.env.maps[self.localMap[id(node)]][node.ident]
+    if not node.ident in self.env:
+      raise Exception(f"Variable '{node.ident}' is not defined in the current environment: {dict(self.env)}")
+    
+    array = self.env[node.ident]
     index = node.index.accept(self)
     value = node.expr.accept(self)
+    
+    if not isinstance(index, int):
+      raise Exception(f"Array index must be an integer got {type(index).__name__}")
+    if not isinstance(array, list):
+      raise Exception(f"Variable '{node.ident}' is not an array")
+    if index < 0 or index >= len(array):
+      raise Exception(f"Array index out of bounds")
     array[index] = value
   
   @multimethod
   def visit(self, node: ArraySizeExpr):
-    array = self.env.maps[self.localMap[id(node)]][node.ident]
+    if node.ident not in self.env:
+      raise Exception(f"Variable '{node.ident}' is not defined in the current environment: {dict(self.env)}")
+    
+    array = self.env[node.ident]
+    
+    if not isinstance(array, list):
+      raise Exception(f"Variable '{node.ident}' is not an array")
     return len(array)
   
   @multimethod

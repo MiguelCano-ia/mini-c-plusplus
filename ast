@@ -1,98 +1,32 @@
 digraph ast {
 	node [fillcolor=lightblue font=bold fontcolor=black shape=box style=filled]
 	edge [arrowhead=none color=black]
-	n1 [label="Class
-Animal"]
-	n2 [label="int edad"]
-	n1 -> n2
-	n3 [label="float peso"]
-	n1 -> n3
-	n4 [label="Constructor
-Animal"]
-	n4 -> n6
-	n6 [label=Body]
-	n7 [label=Expression]
-	n8 [label="edad ="]
-	n9 [label="Const 0"]
-	n8 -> n9
-	n7 -> n8
-	n6 -> n7
-	n10 [label=Expression]
-	n11 [label="peso ="]
-	n12 [label="Const 0.0"]
-	n11 -> n12
-	n10 -> n11
-	n6 -> n10
-	n1 -> n4
-	n13 [label="Function
-void setEdad"]
-	n14 [label=Params]
-	n16 [label="int e"]
-	n14 -> n16
-	n13 -> n14
-	n13 -> n15
-	n15 [label=Body]
-	n17 [label=Expression]
-	n18 [label="edad ="]
-	n19 [label="Var e"]
-	n18 -> n19
-	n17 -> n18
-	n15 -> n17
-	n1 -> n13
-	n20 [label="Function
-int getEdad"]
-	n20 -> n22
-	n22 [label=Body]
-	n23 [label=Return]
-	n24 [label="Var edad"]
-	n23 -> n24
-	n22 -> n23
-	n1 -> n20
-	n25 [label="Function
-void setPeso"]
-	n26 [label=Params]
-	n28 [label="float p"]
-	n26 -> n28
-	n25 -> n26
-	n25 -> n27
-	n27 [label=Body]
-	n29 [label=Expression]
-	n30 [label="peso ="]
-	n31 [label="Var p"]
-	n30 -> n31
-	n29 -> n30
-	n27 -> n29
-	n1 -> n25
-	n32 [label="Function
-float getPeso"]
-	n32 -> n34
-	n34 [label=Body]
-	n35 [label=Return]
-	n36 [label="Var peso"]
-	n35 -> n36
-	n34 -> n35
-	n1 -> n32
-	n37 [label="Function
+	n1 [label="Function
 int main"]
-	n37 -> n39
-	n39 [label=Body]
-	n40 [label="Object
-Animal gato"]
-	n39 -> n40
-	n41 [label=Expression]
-	n42 [label="Call gato.setEdad"]
-	n43 [label="Const 2"]
-	n42 -> n43
-	n41 -> n42
-	n39 -> n41
-	n44 [label=Expression]
-	n45 [label="Call gato.setPeso"]
-	n46 [label="Const 4.5"]
-	n45 -> n46
-	n44 -> n45
-	n39 -> n44
-	n47 [label=Return]
-	n48 [label="Const 0"]
-	n47 -> n48
-	n39 -> n47
+	n1 -> n3
+	n3 [label=Body]
+	n4 [label="int x ="]
+	n5 [label="+"]
+	n6 [label="Const 5"]
+	n7 [label="Const 3"]
+	n5 -> n6
+	n5 -> n7
+	n4 -> n5
+	n3 -> n4
+	n8 [label="int y ="]
+	n9 [label="-"]
+	n10 [label="Var x"]
+	n11 [label="Const 2"]
+	n9 -> n10
+	n9 -> n11
+	n8 -> n9
+	n3 -> n8
+	n12 [label=PrintF]
+	n13 [label="Format x: %d\n"]
+	n14 [label=Args]
+	n15 [label="Var x"]
+	n14 -> n15
+	n12 -> n14
+	n12 -> n13
+	n3 -> n12
 }

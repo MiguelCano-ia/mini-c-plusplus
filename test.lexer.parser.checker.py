@@ -1,3 +1,5 @@
+import io
+import sys
 from lexer import *
 from parser import *
 from myAST import *
@@ -5,6 +7,7 @@ from rich import print
 from mchecker import *
 from mdot import *
 import os
+from myInterpreter import *
 
 def select_script():
     try:
@@ -82,6 +85,24 @@ def tryParser():
                 print(error)
         else:
             print("Análisis semántico completado sin errores.")
+            print("Executing program...")
+            output_buffer = io.StringIO()
+            sys.stdout = output_buffer
+            try:
+                interpreterContext = {}
+                interpreter = Interpreter(interpreterContext,analyzer)
+                interpreter.interpret(ast)
+                sys.stdout = sys.__stdout__
+                outputContent = output_buffer.getvalue()
+                print(f'Execution output:')
+                print(f"{outputContent}")
+                return outputContent
+            except Exception as e:
+              sys.stdout = sys.__stdout__
+              print(f"[red]Error: {e}")
+              return None
+            finally:
+              output_buffer.close()
     else:
         print("[red]No script selected or an error occurred.")
 

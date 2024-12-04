@@ -161,6 +161,13 @@ class SemanticAnalyzer(Visitor):
 
   @multimethod
   def visit(self, node: Program):
+    self.symtable = ChainMap()
+    self.errors = []
+    self.functionsDeclared = {}  # Limpieza para evitar residuos de análisis previos
+    self.currentFunction = None
+    self.currentClass = None
+    self.loopNesting = 0
+    
     for stmt in node.stmts:
       self.visit(stmt)
     # Check if main function is declared
