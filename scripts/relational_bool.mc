@@ -3,8 +3,10 @@ int main() {
     int b = 20;
 
     if (a < b && b > 15) {
+        printf("a < b && b > 15\n");
         return 1;
     } else if (a == b || b != 10) {
+      printf("a == b || b != 10\n");
         return 0;
     }
 

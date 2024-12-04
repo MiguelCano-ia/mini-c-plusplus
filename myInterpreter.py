@@ -2,7 +2,6 @@ from myAST import *
 from mchecker import *
 from buildins import builtins, consts
 from types import *
-from dataclasses import dataclass
 from multimethod import multimethod
 
 #Verifies if a value is truthy
@@ -263,14 +262,40 @@ class Interpreter(Visitor):
   
   @multimethod
   def visit(self, node: IfStmt):
-    condition = node.cond.accept(self)
-    if isTruth(condition):
-      for stmt in node.then_stmt:
-        stmt.accept(self)
-    elif node.else_stmt:
-      for stmt in node.else_stmt:
-        stmt.accept(self)
+    try:
+      # Evaluar la condición
+      condition = node.cond.accept(self)
+    except Exception as e:
+      raise Exception(f"Error evaluating condition: {e}")
     
+    if isTruth(condition):
+      self.env = self.env.new_child()
+      try:
+        for stmt in node.then_stmt:
+          stmt.accept(self)
+      except ReturnException as re:
+        raise re
+      except Exception as e:
+        raise Exception(f"Error en la rama 'then' del 'if': {e}")
+      finally:
+        self.env = self.env.parents
+    elif node.else_stmt:
+      self.env = self.env.new_child()
+      try:
+        if isinstance(node.else_stmt, list):
+          for stmt in node.else_stmt:
+            stmt.accept(self)
+        else:
+          node.else_stmt.accept(self)
+      except ReturnException as re:
+        # Propagar la excepción de retorno
+        raise re
+      except Exception as e:
+        raise Exception(f"Error en la rama 'else' del 'if': {e}")
+      finally:
+        # Restaurar el entorno anterior
+        self.env = self.env.parents
+  
   @multimethod
   def visit(self, node: ReturnStmt):
     value = 0 if not node.expr else node.expr.accept(self)

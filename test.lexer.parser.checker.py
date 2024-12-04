@@ -7,6 +7,7 @@ from mchecker import *
 from mdot import *
 import os
 from myInterpreter import *
+from rich import print
 
 def select_script():
     try:
